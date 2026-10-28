@@ -2,21 +2,19 @@ import { Icon } from '../../components/Icon';
 import type { Locale } from '../../engine/messages';
 import { useSettingsStore } from '../../i18n/settings';
 import { useI18n } from '../../i18n/useI18n';
-import { useProjectStore } from '../../state/projectStore';
 
 const LANGUAGES: readonly { locale: Locale; label: string }[] = [
   { locale: 'ar', label: 'العربية' },
   { locale: 'fr', label: 'Français' },
 ];
 
-/** Navy application bar: brand, language, theme and the engineer on the project. */
+/** Navy application bar: brand, language and theme. */
 export function TopBar() {
   const { t } = useI18n();
   const locale = useSettingsStore((state) => state.locale);
   const setLocale = useSettingsStore((state) => state.setLocale);
   const theme = useSettingsStore((state) => state.theme);
   const setTheme = useSettingsStore((state) => state.setTheme);
-  const engineer = useProjectStore((state) => state.info.engineer);
 
   return (
     <header className="topbar">
@@ -53,13 +51,6 @@ export function TopBar() {
         >
           <Icon name={theme === 'light' ? 'sun' : 'moon'} />
         </button>
-        <span className="topbar__divider" aria-hidden="true" />
-        <span className="topbar__user">
-          <span className="topbar__avatar">
-            <Icon name="user" size={18} />
-          </span>
-          <span className="topbar__user-name">{engineer?.trim() || t('header.engineer')}</span>
-        </span>
       </div>
     </header>
   );

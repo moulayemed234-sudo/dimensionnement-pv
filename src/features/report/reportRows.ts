@@ -1,4 +1,4 @@
-/** Rows shared by the on-screen report and the printed report. */
+/** Rows of the printed report. */
 import type { ProjectData } from '../../state/projectStore';
 import type { SizingResults } from '../../engine/types';
 import { findLocation } from '../../data/locations';
@@ -12,18 +12,6 @@ export interface ReportRow {
   label: string;
   value: string;
   formula?: string;
-}
-
-/** The short report: one line per headline result. */
-export function summaryRows(results: SizingResults, { t }: I18n): ReportRow[] {
-  return [
-    { label: t('report.dailyEnergy'), value: `${formatUp(results.load.dailyEnergyKWh, 2)} ${t('unit.kwhDay')}` },
-    { label: t('report.pvPower'), value: `${formatNumber(results.pvArray.installedPowerW / 1000, 2)} kW` },
-    { label: t('report.batteryCapacity'), value: `${formatUp(results.battery.nominalEnergyWh / 1000, 2)} kWh` },
-    { label: t('report.inverterPower'), value: `${formatUp(results.inverter.ratingW / 1000, 2)} kW` },
-    { label: t('report.systemVoltage'), value: `${results.systemVoltage.voltage} V` },
-    { label: t('report.systemType'), value: 'Off-Grid' },
-  ];
 }
 
 /** Every result with the formula that produced it. */

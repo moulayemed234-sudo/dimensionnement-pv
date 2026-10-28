@@ -1,3 +1,5 @@
+import { findLocation } from '../../data/locations';
+import { placeName } from '../../i18n/places';
 import { useI18n } from '../../i18n/useI18n';
 import type { SizingOutcome } from '../../engine/types';
 import { useProjectStore } from '../../state/projectStore';
@@ -13,6 +15,7 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
   const locationId = useProjectStore((state) => state.locationId);
   const input = useProjectStore((state) => state.input);
   const project = { info, locationId, input };
+  const location = findLocation(locationId);
   const date = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'fr-FR', { dateStyle: 'long' }).format(new Date());
   const warnings = outcome.issues.filter((issue) => issue.severity === 'warning');
   const loads = outcome.ok ? outcome.results.load.appliances : [];
@@ -28,7 +31,7 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
             {text(
               t('print.meta', {
                 name: info.name || '—',
-                site: info.site || '—',
+                site: info.site || (location ? placeName(location, locale) : '—'),
                 engineer: info.engineer || '—',
                 date,
               }),

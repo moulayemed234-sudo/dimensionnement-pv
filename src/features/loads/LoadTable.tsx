@@ -1,20 +1,18 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Icon } from '../../components/Icon';
 import { IssueList } from '../../components/IssueList';
 import { SoftText } from '../../components/SoftText';
 import { useNumberInput, type NumberInputState } from '../../components/useNumberInput';
-import { APPLIANCE_PRESETS, iconForAppliance, type AppliancePreset } from '../../data/appliancePresets';
+import { APPLIANCE_PRESETS, iconForAppliance } from '../../data/appliancePresets';
 import { CATALOGS } from '../../engine/messages';
 import { calculateApplianceDailyEnergyWh, describeAppliance } from '../../engine/solarEngine';
 import type { Appliance, ValidationIssue } from '../../engine/types';
 import { useI18n } from '../../i18n/useI18n';
-import { readProjectFile } from '../../services/projectFile';
 import { snapshotProject, useProjectStore } from '../../state/projectStore';
 import { isBlankAppliance, type LoadTotals } from '../../state/sizing';
 import { useToastStore } from '../../state/toastStore';
 import { severityOf, type Message } from '../../ui/messages';
 import { formatNumber, formatUp } from '../../ui/numbers';
-import { StepCard } from '../layout/StepCard';
 
 type NumericColumn = 'quantity' | 'powerW' | 'hoursPerDay';
 
@@ -27,14 +25,11 @@ interface LoadTableProps {
   totals: LoadTotals | null;
 }
 
-/** Step 1: the equipment inventory, with per-row energy and the daily total. */
+/** The equipment inventory, with per-row energy and the daily total. */
 export function LoadTable({ issues, totals }: LoadTableProps) {
   const { t, locale } = useI18n();
   const appliances = useProjectStore((state) => state.input.appliances);
   const addAppliance = useProjectStore((state) => state.addAppliance);
-  const restoreProject = useProjectStore((state) => state.restoreProject);
-  const showToast = useToastStore((state) => state.show);
-  const fileInput = useRef<HTMLInputElement>(null);
   // The row to animate in, and the row whose name field takes focus.
   const [newId, setNewId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -44,49 +39,25 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
     setNewId(id);
     setFocusId(id);
   };
-  const addPreset = (preset: AppliancePreset) => {
-    setNewId(addAppliance({ name: preset.names[locale], powerW: preset.powerW, hoursPerDay: preset.hoursPerDay }));
-    setFocusId(null);
-  };
-  const importFile = async (file: File | undefined) => {
-    if (!file) return;
-    const project = await readProjectFile(file);
-    if (!project) {
-      showToast(t('toast.importFailed'));
-      return;
-    }
-    const previous = snapshotProject();
-    restoreProject(project);
-    showToast(t('toast.imported', { name: project.info.name || file.name }), previous);
-  };
 
   return (
-    <StepCard
-      step={1}
-      subtitle={t('loads.subtitle')}
-      actions={
-        <>
-          <button type="button" className="button" onClick={() => fileInput.current?.click()}>
-            <Icon name="upload" size={18} />
-            {t('loads.import')}
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={(event) => {
-              void importFile(event.target.files?.[0]);
-              event.target.value = '';
-            }}
-          />
-          <button type="button" className="button button--primary" onClick={addEmpty}>
-            <Icon name="plus" size={18} />
-            {t('loads.add')}
-          </button>
-        </>
-      }
-    >
+    <section className="card" aria-labelledby="loads-title">
+      <div className="card__header">
+        <div>
+          <h2 id="loads-title" className="card__title">
+            <span className="card__title-icon" aria-hidden="true">
+              <Icon name="plug" size={22} />
+            </span>
+            {t('loads.title')}
+          </h2>
+          <p className="card__subtitle">{t('loads.subtitle')}</p>
+        </div>
+        <button type="button" className="button button--primary" onClick={addEmpty}>
+          <Icon name="plus" size={18} />
+          {t('loads.add')}
+        </button>
+      </div>
+
       <datalist id={SUGGESTIONS_ID}>
         {APPLIANCE_PRESETS.map((preset) => (
           <option key={preset.names.fr} value={preset.names[locale]} />
@@ -141,27 +112,6 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
 
       <p className="field__hint">{t('loads.simultaneousHint')}</p>
 
-      <div className="quick-add">
-        <span className="quick-add__label" id="quick-add-label">
-          {t('loads.quickAdd')}
-        </span>
-        <div className="quick-add__chips" role="group" aria-labelledby="quick-add-label">
-          {APPLIANCE_PRESETS.map((preset) => (
-            <button
-              key={preset.names.fr}
-              type="button"
-              className="chip"
-              onClick={() => addPreset(preset)}
-              aria-label={t('aria.quickAdd', { name: preset.names[locale], w: preset.powerW, h: preset.hoursPerDay })}
-            >
-              <Icon name={preset.icon} size={16} />
-              {preset.names[locale]}
-              <span className="chip__meta num">{formatNumber(preset.powerW)} W</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="total-bar">
         <span className="total-bar__icon" aria-hidden="true">
           <Icon name="calculator" size={26} />
@@ -178,7 +128,7 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
         </p>
       </div>
       <IssueList messages={issues.filter((issue) => issue.field === 'appliances')} />
-    </StepCard>
+    </section>
   );
 }
 
