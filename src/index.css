@@ -1,58 +1,37 @@
-/* ─── Design tokens ─────────────────────────────────────────────────────────── */
+/* ─── Design tokens: executive dark glass ───────────────────────────────────── */
 
 :root {
-  color-scheme: light;
-  --font: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color-scheme: dark;
+  --font: 'Manrope Variable', Manrope, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', Consolas, monospace;
 
-  --bg: #f2f4f7;
-  --surface: #ffffff;
-  --surface-muted: #f6f8fa;
-  --border: #dce2e9;
-  --border-strong: #7f8b98;
-  --text: #15202b;
-  --text-muted: #586574;
-  --primary: #0b5cad;
-  --primary-hover: #094c8f;
-  --primary-soft: #e6effa;
-  --on-primary: #ffffff;
-  --accent: #f5b21b;
-  --error: #b42318;
-  --error-soft: #fdeceb;
-  --warning: #855400;
-  --warning-line: #d48f00;
-  --warning-soft: #fff4d6;
-  --success: #146c3c;
-  --success-soft: #e3f3e9;
+  --bg: #0b1120;
+  /* Glass layers: translucent white over the dark background. */
+  --surface: rgb(255 255 255 / 0.06);
+  --surface-muted: rgb(255 255 255 / 0.04);
+  --surface-solid: #141b2b;
+  --input-bg: rgb(2 6 23 / 0.55);
+  --border: rgb(255 255 255 / 0.1);
+  --border-strong: #64748b;
+  --text: #f1f5f9;
+  --text-muted: #94a3b8;
+  --primary: #22d3ee;
+  --primary-hover: #67e8f9;
+  --primary-soft: rgb(34 211 238 / 0.14);
+  --on-primary: #04121a;
+  --accent: #34d399;
+  --error: #fda4af;
+  --error-soft: rgb(251 113 133 / 0.12);
+  --warning: #fcd34d;
+  --warning-line: #f59e0b;
+  --warning-soft: rgb(252 211 77 / 0.1);
+  --success: #6ee7b7;
+  --success-soft: rgb(52 211 153 / 0.12);
 
-  --radius: 8px;
-  --radius-lg: 12px;
-  --shadow: 0 1px 2px rgb(16 24 40 / 0.05), 0 1px 4px rgb(16 24 40 / 0.06);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color-scheme: dark;
-    --bg: #0e1319;
-    --surface: #151c24;
-    --surface-muted: #1a222c;
-    --border: #283340;
-    --border-strong: #6b7885;
-    --text: #e5ecf2;
-    --text-muted: #9aa7b4;
-    --primary: #5aa2ee;
-    --primary-hover: #7ab5f2;
-    --primary-soft: #14304c;
-    --on-primary: #08121c;
-    --error: #ff8f85;
-    --error-soft: #3b1d1b;
-    --warning: #f3c56b;
-    --warning-line: #c48d26;
-    --warning-soft: #33280f;
-    --success: #73d39f;
-    --success-soft: #12301f;
-    --shadow: none;
-  }
+  --radius: 10px;
+  --radius-lg: 18px;
+  --shadow: 0 24px 48px -24px rgb(0 0 0 / 0.7);
+  --glass-blur: blur(18px) saturate(140%);
 }
 
 /* ─── Base ──────────────────────────────────────────────────────────────────── */
@@ -65,7 +44,12 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  min-height: 100vh;
+  background:
+    radial-gradient(60rem 40rem at 90% -10%, rgb(34 211 238 / 0.16), transparent 60%),
+    radial-gradient(50rem 35rem at -5% 105%, rgb(52 211 153 / 0.12), transparent 60%),
+    linear-gradient(160deg, #0b1120 0%, #111827 45%, #09090b 100%);
+  background-color: var(--bg);
   color: var(--text);
   font: 0.9375rem/1.45 var(--font);
   -webkit-font-smoothing: antialiased;
@@ -1336,5 +1320,85 @@ input[type='checkbox'] {
   .brand__mark {
     width: 36px;
     height: 36px;
+  }
+}
+
+/* ─── Executive dark glass layer ────────────────────────────────────────────── */
+
+.app-header,
+.card {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.075), rgb(255 255 255 / 0.035));
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+.input,
+.load-table .input {
+  background: var(--input-bg);
+}
+
+input.input[readonly] {
+  background: var(--surface-muted);
+}
+
+.card__title,
+.brand__title {
+  letter-spacing: -0.01em;
+}
+
+.param-group,
+.advanced {
+  background: rgb(2 6 23 / 0.25);
+}
+
+.kpi {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+  background: rgb(2 6 23 / 0.35);
+}
+.kpi::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary), var(--accent) 60%, transparent);
+}
+.kpi__value {
+  color: #ffffff;
+}
+
+.col-energy {
+  color: var(--accent);
+}
+
+.issue__icon {
+  color: #0b1120;
+}
+
+.results-bar,
+.toast {
+  background: rgb(15 23 42 / 0.88);
+  border-color: var(--border);
+  box-shadow: 0 16px 40px -12px rgb(0 0 0 / 0.7);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+}
+
+input[type='checkbox'] {
+  accent-color: var(--primary);
+}
+
+/* Phones: keep the three number fields of a load card on one line. */
+@media (max-width: 640px) {
+  .load-row .col-num {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .load-row td[data-label]::before {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }

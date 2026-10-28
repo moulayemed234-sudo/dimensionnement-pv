@@ -22,11 +22,17 @@ export function ProjectHeader() {
     <header className="app-header">
       <div className="brand">
         <svg className="brand__mark" viewBox="0 0 64 64" aria-hidden="true">
-          <rect width="64" height="64" rx="14" fill="var(--primary)" />
-          <circle cx="32" cy="32" r="10" fill="var(--accent)" />
+          <defs>
+            <linearGradient id="brand-gradient" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#22d3ee" />
+              <stop offset="1" stopColor="#34d399" />
+            </linearGradient>
+          </defs>
+          <rect width="64" height="64" rx="16" fill="url(#brand-gradient)" />
+          <circle cx="32" cy="32" r="10" fill="#0b1120" />
           <path
             d="M32 9v7M32 48v7M9 32h7M48 32h7M15.7 15.7l5 5M43.3 43.3l5 5M48.3 15.7l-5 5M20.7 43.3l-5 5"
-            stroke="var(--accent)"
+            stroke="#0b1120"
             strokeWidth="4"
             strokeLinecap="round"
           />

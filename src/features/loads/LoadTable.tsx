@@ -18,11 +18,11 @@ const NUMERIC_COLUMNS: readonly NumericColumn[] = ['quantity', 'powerW', 'hoursP
 
 const COLUMNS: Record<
   NumericColumn,
-  { header: string; ariaLabel: string; placeholder: string; inputMode: 'numeric' | 'decimal' }
+  { header: string; cardLabel: string; ariaLabel: string; placeholder: string; inputMode: 'numeric' | 'decimal' }
 > = {
-  quantity: { header: 'Qté', ariaLabel: 'quantité', placeholder: '1', inputMode: 'numeric' },
-  powerW: { header: 'Puissance (W)', ariaLabel: 'puissance en watts', placeholder: 'W', inputMode: 'decimal' },
-  hoursPerDay: { header: 'Heures/jour', ariaLabel: 'heures par jour', placeholder: 'h', inputMode: 'decimal' },
+  quantity: { header: 'Qté', cardLabel: 'Qté', ariaLabel: 'quantité', placeholder: '1', inputMode: 'numeric' },
+  powerW: { header: 'Puissance (W)', cardLabel: 'Watts', ariaLabel: 'puissance en watts', placeholder: 'W', inputMode: 'decimal' },
+  hoursPerDay: { header: 'Heures/jour', cardLabel: 'Heures/jour', ariaLabel: 'heures par jour', placeholder: 'h', inputMode: 'decimal' },
 };
 
 interface LoadTableProps {
@@ -242,7 +242,7 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
           const severity = severityOf(byColumn[column]);
           const spec = COLUMNS[column];
           return (
-            <td key={column} className={`col-num col-${column}`} data-label={spec.header}>
+            <td key={column} className={`col-num col-${column}`} data-label={spec.cardLabel}>
               <input
                 className={severity ? `input input--${severity}` : 'input'}
                 type="text"
