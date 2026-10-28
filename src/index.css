@@ -9,7 +9,7 @@
   --surface: #ffffff;
   --surface-muted: #f6f8fa;
   --border: #dce2e9;
-  --border-strong: #bcc6d1;
+  --border-strong: #7f8b98;
   --text: #15202b;
   --text-muted: #586574;
   --primary: #0b5cad;
@@ -37,7 +37,7 @@
     --surface: #151c24;
     --surface-muted: #1a222c;
     --border: #283340;
-    --border-strong: #3a4756;
+    --border-strong: #6b7885;
     --text: #e5ecf2;
     --text-muted: #9aa7b4;
     --primary: #5aa2ee;
@@ -67,7 +67,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.45 var(--font);
+  font: 0.9375rem/1.45 var(--font);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -325,7 +325,6 @@ input.input[readonly] {
 
 .input::placeholder {
   color: var(--text-muted);
-  opacity: 0.7;
 }
 
 .input--error,
@@ -408,7 +407,7 @@ input[type='checkbox'] {
 }
 
 .chip {
-  height: 26px;
+  height: 32px;
   padding: 0 10px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
@@ -625,7 +624,7 @@ input[type='checkbox'] {
 
   .load-row {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) 32px;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) 44px;
     grid-template-areas:
       'name name name remove'
       'quantity power hours hours'
@@ -679,17 +678,9 @@ input[type='checkbox'] {
     grid-area: hours;
   }
 
-  .load-row .col-check {
-    display: flex;
+  .load-table .load-row .col-check {
     grid-area: check;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .load-row .col-check::before {
-    order: 2;
-    margin: 0;
-    font-size: 0.85rem;
+    text-align: left;
   }
 
   .load-row .col-energy {
@@ -904,4 +895,120 @@ input[type='checkbox'] {
 .fatal {
   max-width: 640px;
   margin: 10vh auto 0;
+}
+
+/* ─── Touch sizing, results bar, undo message ───────────────────────────────── */
+
+/* The whole cell is the tap target; the text is visible only on phones. */
+.check-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 36px;
+  cursor: pointer;
+}
+
+.check-label__text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.results-bar,
+.toast {
+  position: fixed;
+  right: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 16px rgb(16 24 40 / 0.18);
+}
+
+.results-bar {
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  display: none;
+  justify-content: space-between;
+  color: inherit;
+  font-variant-numeric: tabular-nums;
+  text-decoration: none;
+}
+
+.results-bar__values {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  font-weight: 650;
+}
+
+.toast {
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  justify-content: space-between;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+  /* iOS zooms into fields with text under 16 px. */
+  body {
+    font-size: 1rem;
+  }
+
+  .input,
+  .load-table .input {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .button,
+  .segmented__option {
+    height: 44px;
+  }
+
+  .chip {
+    height: 44px;
+    padding: 0 14px;
+  }
+
+  .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  .check-label {
+    justify-content: flex-start;
+    min-height: 44px;
+  }
+
+  .check-label__text {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .results-bar {
+    display: flex;
+  }
+
+  .toast {
+    bottom: calc(84px + env(safe-area-inset-bottom));
+  }
+
+  .app {
+    padding-bottom: 96px;
+  }
 }

@@ -210,13 +210,18 @@ function LoadRow({ appliance, index, issues, autoFocus }: LoadRowProps) {
             </td>
           );
         })}
-        <td className="col-check" data-label="Simultané">
-          <input
-            type="checkbox"
-            checked={appliance.isSimultaneous}
-            aria-label={`Charge ${rowNumber} : simultanée`}
-            onChange={(event) => update({ isSimultaneous: event.target.checked })}
-          />
+        <td className="col-check">
+          <label className="check-label">
+            <input
+              type="checkbox"
+              checked={appliance.isSimultaneous}
+              aria-label={`Charge ${rowNumber} : simultanée`}
+              onChange={(event) => update({ isSimultaneous: event.target.checked })}
+            />
+            <span className="check-label__text" aria-hidden="true">
+              Simultané
+            </span>
+          </label>
         </td>
         <td className="col-energy" data-label="Énergie (Wh/j)">
           {energyWh === null ? '—' : formatNumber(energyWh, 1)}

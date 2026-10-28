@@ -1,7 +1,13 @@
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Field } from '../../components/Field';
-import { useProjectStore } from '../../state/projectStore';
-import { frenchSpacing } from '../../ui/typography';
+import { useProjectStore, type ProjectData } from '../../state/projectStore';
+
+const UNDO_DELAY_MS = 10_000;
+
+interface Undo {
+  message: string;
+  previous: ProjectData;
+}
 
 /** App title, project identification and project-level actions. */
 export function ProjectHeader() {
@@ -9,11 +15,20 @@ export function ProjectHeader() {
   const setInfo = useProjectStore((state) => state.setInfo);
   const newProject = useProjectStore((state) => state.newProject);
   const loadExample = useProjectStore((state) => state.loadExample);
+  const restoreProject = useProjectStore((state) => state.restoreProject);
+  const [undo, setUndo] = useState<Undo | null>(null);
 
-  const replaceWith = (replace: () => void) => () => {
-    if (window.confirm(frenchSpacing('Remplacer le projet en cours ? Ses charges et paramètres seront effacés.'))) {
-      replace();
-    }
+  useEffect(() => {
+    if (!undo) return;
+    const timer = window.setTimeout(() => setUndo(null), UNDO_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [undo]);
+
+  // Replacing is immediate; an undo message replaces the old confirm dialog.
+  const replaceWith = (replace: () => void, message: string) => () => {
+    const { info: previousInfo, locationId, input } = useProjectStore.getState();
+    replace();
+    setUndo({ message, previous: { info: previousInfo, locationId, input } });
   };
 
   return (
@@ -42,13 +57,29 @@ export function ProjectHeader() {
       </div>
 
       <div className="header-actions">
-        <button type="button" className="button" onClick={replaceWith(newProject)}>
+        <button type="button" className="button" onClick={replaceWith(newProject, 'Nouveau projet créé.')}>
           Nouveau projet
         </button>
-        <button type="button" className="button" onClick={replaceWith(loadExample)}>
+        <button type="button" className="button" onClick={replaceWith(loadExample, 'Exemple chargé.')}>
           Charger l'exemple
         </button>
       </div>
+
+      {undo ? (
+        <div className="toast" role="status">
+          <span>{undo.message}</span>
+          <button
+            type="button"
+            className="button"
+            onClick={() => {
+              restoreProject(undo.previous);
+              setUndo(null);
+            }}
+          >
+            Annuler
+          </button>
+        </div>
+      ) : null}
     </header>
   );
 }

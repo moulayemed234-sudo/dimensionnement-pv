@@ -29,6 +29,8 @@ interface ProjectActions {
   setBattery: (patch: Partial<BatteryConfig>) => void;
   newProject: () => void;
   loadExample: () => void;
+  /** Puts back a project replaced a moment ago (undo). */
+  restoreProject: (project: ProjectData) => void;
 }
 
 export type ProjectStore = ProjectData & ProjectActions;
@@ -156,6 +158,8 @@ export const useProjectStore = create<ProjectStore>()(
       newProject: () => set(blankProject()),
 
       loadExample: () => set(exampleProject()),
+
+      restoreProject: (project) => set(project),
     }),
     {
       name: 'offgrid-pv-sizing:draft',
