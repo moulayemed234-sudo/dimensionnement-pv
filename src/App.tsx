@@ -1,3 +1,4 @@
+import { UndoToast } from './components/UndoToast';
 import { ENGINE_VERSION } from './engine/constants';
 import { LoadTable } from './features/loads/LoadTable';
 import { SystemParametersPanel } from './features/parameters/SystemParametersPanel';
@@ -23,6 +24,7 @@ export default function App() {
         </aside>
       </main>
       <ResultsBar outcome={outcome} />
+      <UndoToast />
       <footer className="app-footer">
         Moteur de calcul v{ENGINE_VERSION}. Les résultats se mettent à jour pendant la saisie&nbsp;; le brouillon
         est enregistré dans ce navigateur.

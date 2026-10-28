@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SoftText } from './SoftText';
 
 interface StatProps {
   label: ReactNode;
@@ -13,7 +14,7 @@ export function Stat({ label, value, unit, note }: StatProps) {
     <div className="stat">
       <dt className="stat__label">{label}</dt>
       <dd className="stat__value">
-        {value}
+        <SoftText text={value} />
         <span className="stat__unit">{unit}</span>
       </dd>
       {note ? <dd className="stat__note">{note}</dd> : null}

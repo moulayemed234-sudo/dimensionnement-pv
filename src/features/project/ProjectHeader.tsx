@@ -1,13 +1,7 @@
-import { useEffect, useId, useState } from 'react';
+import { useId } from 'react';
 import { Field } from '../../components/Field';
-import { useProjectStore, type ProjectData } from '../../state/projectStore';
-
-const UNDO_DELAY_MS = 10_000;
-
-interface Undo {
-  message: string;
-  previous: ProjectData;
-}
+import { snapshotProject, useProjectStore } from '../../state/projectStore';
+import { useToastStore } from '../../state/toastStore';
 
 /** App title, project identification and project-level actions. */
 export function ProjectHeader() {
@@ -15,20 +9,13 @@ export function ProjectHeader() {
   const setInfo = useProjectStore((state) => state.setInfo);
   const newProject = useProjectStore((state) => state.newProject);
   const loadExample = useProjectStore((state) => state.loadExample);
-  const restoreProject = useProjectStore((state) => state.restoreProject);
-  const [undo, setUndo] = useState<Undo | null>(null);
+  const showToast = useToastStore((state) => state.show);
 
-  useEffect(() => {
-    if (!undo) return;
-    const timer = window.setTimeout(() => setUndo(null), UNDO_DELAY_MS);
-    return () => window.clearTimeout(timer);
-  }, [undo]);
-
-  // Replacing is immediate; an undo message replaces the old confirm dialog.
+  // Replacing is immediate and undoable, so no confirm dialog is needed.
   const replaceWith = (replace: () => void, message: string) => () => {
-    const { info: previousInfo, locationId, input } = useProjectStore.getState();
+    const previous = snapshotProject();
     replace();
-    setUndo({ message, previous: { info: previousInfo, locationId, input } });
+    showToast(message, previous);
   };
 
   return (
@@ -60,26 +47,10 @@ export function ProjectHeader() {
         <button type="button" className="button" onClick={replaceWith(newProject, 'Nouveau projet créé.')}>
           Nouveau projet
         </button>
-        <button type="button" className="button" onClick={replaceWith(loadExample, 'Exemple chargé.')}>
+        <button type="button" className="button button--ghost" onClick={replaceWith(loadExample, 'Exemple chargé.')}>
           Charger l'exemple
         </button>
       </div>
-
-      {undo ? (
-        <div className="toast" role="status">
-          <span>{undo.message}</span>
-          <button
-            type="button"
-            className="button"
-            onClick={() => {
-              restoreProject(undo.previous);
-              setUndo(null);
-            }}
-          >
-            Annuler
-          </button>
-        </div>
-      ) : null}
     </header>
   );
 }

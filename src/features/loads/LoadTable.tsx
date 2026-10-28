@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { IssueList } from '../../components/IssueList';
 import { Stat } from '../../components/Stat';
 import { useNumberInput, type NumberInputState } from '../../components/useNumberInput';
+import { APPLIANCE_PRESETS, type AppliancePreset } from '../../data/appliancePresets';
 import { NUMERIC_RULES } from '../../engine/constants';
 import { calculateApplianceDailyEnergyWh, describeAppliance } from '../../engine/solarEngine';
 import type { Appliance, ValidationIssue } from '../../engine/types';
-import { useProjectStore } from '../../state/projectStore';
+import { snapshotProject, useProjectStore } from '../../state/projectStore';
 import { isBlankAppliance, type LoadTotals } from '../../state/sizing';
+import { useToastStore } from '../../state/toastStore';
 import { severityOf, type Message } from '../../ui/messages';
 import { formatNumber, formatUp } from '../../ui/numbers';
 
@@ -28,17 +30,32 @@ interface LoadTableProps {
   totals: LoadTotals | null;
 }
 
-/** Step A input: the equipment inventory, with per-row energy and table totals. */
+/** Step 1: the equipment inventory, with per-row energy and table totals. */
 export function LoadTable({ issues, totals }: LoadTableProps) {
   const appliances = useProjectStore((state) => state.input.appliances);
   const addAppliance = useProjectStore((state) => state.addAppliance);
+  // The row to animate in, and the row whose name field takes focus.
+  const [newId, setNewId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+
+  const addEmpty = () => {
+    const id = addAppliance();
+    setNewId(id);
+    setFocusId(id);
+  };
+  const addPreset = (preset: AppliancePreset) => {
+    setNewId(addAppliance(preset));
+    setFocusId(null);
+  };
 
   return (
     <section className="card" aria-labelledby="loads-title">
       <div className="card__header">
         <div>
           <h2 id="loads-title" className="card__title">
+            <span className="step" aria-hidden="true">
+              1
+            </span>
             Bilan des charges
           </h2>
           <p className="card__subtitle">
@@ -46,9 +63,6 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
             fonctionner en même temps&nbsp;: leur somme donne la puissance de pointe.
           </p>
         </div>
-        <button type="button" className="button button--primary" onClick={() => setFocusId(addAppliance())}>
-          + Ajouter une charge
-        </button>
       </div>
 
       <div className="table-scroll">
@@ -84,6 +98,7 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
                 appliance={appliance}
                 index={index}
                 issues={issues.filter((issue) => issue.applianceId === appliance.id)}
+                isNew={appliance.id === newId}
                 autoFocus={appliance.id === focusId}
               />
             ))}
@@ -92,6 +107,31 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
         {appliances.length === 0 ? (
           <p className="empty-state">Aucune charge. Ajoutez les équipements utilisés sur le site.</p>
         ) : null}
+      </div>
+
+      <div className="load-actions">
+        <button type="button" className="add-row" onClick={addEmpty}>
+          <span aria-hidden="true">+</span> Ajouter une charge
+        </button>
+        <div className="quick-add">
+          <span className="quick-add__label" id="quick-add-label">
+            Ajout rapide
+          </span>
+          <div className="quick-add__chips" role="group" aria-labelledby="quick-add-label">
+            {APPLIANCE_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                type="button"
+                className="chip"
+                onClick={() => addPreset(preset)}
+                aria-label={`Ajouter ${preset.name}, ${preset.powerW} W, ${preset.hoursPerDay} h par jour`}
+              >
+                {preset.name}
+                <span className="chip__meta">{formatNumber(preset.powerW)} W</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <dl className="stats">
@@ -133,12 +173,14 @@ interface LoadRowProps {
   appliance: Appliance;
   index: number;
   issues: readonly ValidationIssue[];
+  isNew: boolean;
   autoFocus: boolean;
 }
 
-function LoadRow({ appliance, index, issues, autoFocus }: LoadRowProps) {
+function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
   const updateAppliance = useProjectStore((state) => state.updateAppliance);
   const removeAppliance = useProjectStore((state) => state.removeAppliance);
+  const showToast = useToastStore((state) => state.show);
   const update = (patch: Partial<Omit<Appliance, 'id'>>) => updateAppliance(appliance.id, patch);
   const inputs: Record<NumericColumn, NumberInputState> = {
     quantity: useNumberInput(appliance.quantity, (quantity) => update({ quantity })),
@@ -173,9 +215,17 @@ function LoadRow({ appliance, index, issues, autoFocus }: LoadRowProps) {
   const blank = isBlankAppliance(appliance);
   const energyWh = !blank && !issues.some((issue) => issue.severity === 'error') ? calculateApplianceDailyEnergyWh(appliance) : null;
 
+  const remove = () => {
+    const previous = snapshotProject();
+    removeAppliance(appliance.id);
+    showToast(blank ? 'Ligne vide supprimée.' : `Charge supprimée : ${label}.`, previous);
+  };
+
+  const rowClass = ['load-row', blank ? 'load-row--blank' : '', isNew ? 'load-row--new' : ''].filter(Boolean).join(' ');
+
   return (
     <>
-      <tr className={blank ? 'load-row load-row--blank' : 'load-row'}>
+      <tr className={rowClass}>
         <td className="col-index">{rowNumber}</td>
         <td className="col-name">
           <input
@@ -227,13 +277,7 @@ function LoadRow({ appliance, index, issues, autoFocus }: LoadRowProps) {
           {energyWh === null ? '—' : formatNumber(energyWh, 1)}
         </td>
         <td className="col-action">
-          <button
-            type="button"
-            className="icon-button"
-            aria-label={`Supprimer ${label}`}
-            title="Supprimer la charge"
-            onClick={() => removeAppliance(appliance.id)}
-          >
+          <button type="button" className="icon-button" aria-label={`Supprimer ${label}`} title="Supprimer la charge" onClick={remove}>
             ×
           </button>
         </td>

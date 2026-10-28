@@ -1,15 +1,10 @@
 /** Derives validation and sizing results from the project input. */
 import { useMemo } from 'react';
 import { analyzeLoads, calculateSizing, recommendSystemVoltage } from '../engine/solarEngine';
-import type { Appliance, IssueField, SizingInput, SizingOutcome, SystemVoltage, ValidationIssue } from '../engine/types';
-import { useProjectStore } from './projectStore';
+import type { IssueField, SizingInput, SizingOutcome, SystemVoltage, ValidationIssue } from '../engine/types';
+import { isBlankAppliance, useProjectStore } from './projectStore';
 
-/** A row nobody has filled in yet. Like an empty spreadsheet row, the calculation skips it. */
-export function isBlankAppliance(appliance: Appliance): boolean {
-  return (
-    appliance.name.trim() === '' && !Number.isFinite(appliance.powerW) && !Number.isFinite(appliance.hoursPerDay)
-  );
-}
+export { isBlankAppliance };
 
 export interface LoadTotals {
   dailyEnergyWh: number;

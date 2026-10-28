@@ -7,6 +7,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { DEFAULTS } from '../engine/constants';
 import type { Appliance, BatteryConfig, ProjectInfo, SizingInput, SystemParameters } from '../engine/types';
+import type { AppliancePreset } from '../data/appliancePresets';
 import { NOUAKCHOTT, findLocation } from '../data/locations';
 
 /** Everything that describes a sizing project. */
@@ -19,8 +20,11 @@ export interface ProjectData {
 
 interface ProjectActions {
   setInfo: (patch: Partial<ProjectInfo>) => void;
-  /** Appends an empty load row and returns its id. */
-  addAppliance: () => string;
+  /**
+   * Adds a load row and returns its id: empty, or filled from a preset. A preset
+   * fills the last row instead when that row is still blank.
+   */
+  addAppliance: (preset?: AppliancePreset) => string;
   updateAppliance: (id: string, patch: Partial<Omit<Appliance, 'id'>>) => void;
   removeAppliance: (id: string) => void;
   /** Picks a location preset (copying its PSH), or null to enter PSH by hand. */
@@ -40,6 +44,19 @@ function createId(): string {
   return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
     : `id-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+/** A row nobody has filled in yet. Like an empty spreadsheet row, the calculation skips it. */
+export function isBlankAppliance(appliance: Appliance): boolean {
+  return (
+    appliance.name.trim() === '' && !Number.isFinite(appliance.powerW) && !Number.isFinite(appliance.hoursPerDay)
+  );
+}
+
+/** The current project, for undo. */
+export function snapshotProject(): ProjectData {
+  const { info, locationId, input } = useProjectStore.getState();
+  return { info, locationId, input };
 }
 
 function emptyAppliance(): Appliance {
@@ -116,13 +133,19 @@ function isProjectData(value: unknown): value is ProjectData {
 
 export const useProjectStore = create<ProjectStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       ...exampleProject(),
 
       setInfo: (patch) => set((state) => ({ info: { ...state.info, ...patch } })),
 
-      addAppliance: () => {
-        const appliance = emptyAppliance();
+      addAppliance: (preset) => {
+        const { appliances } = get().input;
+        const last = appliances.at(-1);
+        if (preset && last && isBlankAppliance(last)) {
+          get().updateAppliance(last.id, { ...preset, quantity: 1, isSimultaneous: true });
+          return last.id;
+        }
+        const appliance = preset ? { ...emptyAppliance(), ...preset } : emptyAppliance();
         set((state) => ({ input: { ...state.input, appliances: [...state.input.appliances, appliance] } }));
         return appliance.id;
       },

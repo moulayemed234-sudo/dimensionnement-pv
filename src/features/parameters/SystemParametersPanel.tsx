@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Field } from '../../components/Field';
 import { IssueList } from '../../components/IssueList';
 import { NumberField } from '../../components/NumberField';
@@ -15,13 +15,21 @@ const CUSTOM_PSH = 'custom';
 const DERATING_PRESETS = [0.9, 0.8, 0.7];
 const CHEMISTRIES = Object.keys(CHEMISTRY_LABELS) as BatteryChemistry[];
 
+/** Fields that live in "Paramètres avancés": rarely changed once the design rules are set. */
+const ADVANCED_FIELDS: readonly IssueField[] = [
+  'system.deratingFactor',
+  'battery.efficiency',
+  'system.inverterSafetyFactor',
+  'system.systemVoltageOverride',
+];
+
 interface SystemParametersPanelProps {
   issues: readonly ValidationIssue[];
   /** What the automatic rule gives for the current loads, or null when unknown. */
   recommendedVoltage: SystemVoltage | null;
 }
 
-/** Site, PV, battery, inverter and DC bus parameters. */
+/** Step 2: site and battery choices up front, design constants behind "Paramètres avancés". */
 export function SystemParametersPanel({ issues, recommendedVoltage }: SystemParametersPanelProps) {
   const system = useProjectStore((state) => state.input.system);
   const battery = useProjectStore((state) => state.input.battery);
@@ -33,6 +41,14 @@ export function SystemParametersPanel({ issues, recommendedVoltage }: SystemPara
   const location = findLocation(locationId);
   const customDod = NUMERIC_RULES.customDepthOfDischarge;
 
+  const advancedIssues = issues.filter((issue) => ADVANCED_FIELDS.includes(issue.field));
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  // Open by itself when something inside needs attention.
+  const advancedNeedsAttention = advancedIssues.length > 0;
+  useEffect(() => {
+    if (advancedNeedsAttention) setAdvancedOpen(true);
+  }, [advancedNeedsAttention]);
+
   const changeChemistry = (chemistry: BatteryChemistry) => {
     // Switching to custom starts from the DoD of the technology being left.
     if (chemistry === 'custom' && battery.chemistry !== 'custom' && battery.customDepthOfDischarge === undefined) {
@@ -42,22 +58,31 @@ export function SystemParametersPanel({ issues, recommendedVoltage }: SystemPara
     }
   };
 
+  const voltageSummary = system.systemVoltageOverride === null ? 'tension auto' : `tension forcée ${system.systemVoltageOverride} V`;
+  const advancedSummary = [
+    `DF ${formatNumber(system.deratingFactor, 3)}`,
+    `η ${Number.isFinite(battery.efficiency) ? formatPercent(battery.efficiency) : '—'}`,
+    `onduleur × ${formatNumber(system.inverterSafetyFactor, 2)}`,
+    voltageSummary,
+  ].join(' · ');
+
   return (
     <section className="card" aria-labelledby="params-title">
       <div className="card__header">
         <div>
           <h2 id="params-title" className="card__title">
-            Paramètres du système
+            <span className="step" aria-hidden="true">
+              2
+            </span>
+            Site et batteries
           </h2>
-          <p className="card__subtitle">
-            Les valeurs par défaut suivent les règles de conception. Les valeurs hors plage usuelle sont signalées.
-          </p>
+          <p className="card__subtitle">Choisissez la ville et la batterie&nbsp;; le reste suit les règles de conception.</p>
         </div>
       </div>
 
       <div className="param-grid">
         <fieldset className="param-group">
-          <legend>Site et champ PV</legend>
+          <legend>Site et panneaux</legend>
           <Field label="Localité" htmlFor="param-location">
             <select
               id="param-location"
@@ -92,21 +117,6 @@ export function SystemParametersPanel({ issues, recommendedVoltage }: SystemPara
             onChange={(peakSunHours) => setSystem({ peakSunHours })}
           />
           <NumberField
-            label="Coefficient de pertes (DF)"
-            value={system.deratingFactor}
-            hint={
-              <PresetChips
-                label="Valeurs types du coefficient de pertes"
-                values={DERATING_PRESETS}
-                current={system.deratingFactor}
-                onPick={(deratingFactor) => setSystem({ deratingFactor })}
-                caption="0,9 pertes faibles, 0,7 pertes élevées"
-              />
-            }
-            issues={at('system.deratingFactor')}
-            onChange={(deratingFactor) => setSystem({ deratingFactor })}
-          />
-          <NumberField
             label="Puissance du panneau"
             unit="W"
             value={system.panelPowerW}
@@ -117,7 +127,7 @@ export function SystemParametersPanel({ issues, recommendedVoltage }: SystemPara
         </fieldset>
 
         <fieldset className="param-group">
-          <legend>Parc de batteries</legend>
+          <legend>Batteries</legend>
           <Field label="Technologie" htmlFor="param-chemistry">
             <select
               id="param-chemistry"
@@ -157,40 +167,82 @@ export function SystemParametersPanel({ issues, recommendedVoltage }: SystemPara
             issues={at('battery.daysOfAutonomy')}
             onChange={(daysOfAutonomy) => setBattery({ daysOfAutonomy })}
           />
-          <NumberField
-            label="Rendement batterie (η)"
-            value={battery.efficiency}
-            hint={Number.isFinite(battery.efficiency) ? `= ${formatPercent(battery.efficiency)}` : undefined}
-            issues={at('battery.efficiency')}
-            onChange={(efficiency) => setBattery({ efficiency })}
-          />
         </fieldset>
+      </div>
 
-        <fieldset className="param-group param-group--wide">
-          <legend>Onduleur et tension du système</legend>
-          <div className="param-group__columns">
-            <NumberField
-              label="Coefficient de sécurité onduleur"
-              value={system.inverterSafetyFactor}
-              hint="1,3 ajoute la marge standard de 30 % pour les pointes et la sécurité."
-              issues={at('system.inverterSafetyFactor')}
-              onChange={(inverterSafetyFactor) => setSystem({ inverterSafetyFactor })}
-            />
-            <div className="field">
-              <span className="field__label">Tension du système</span>
-              <VoltagePicker
-                value={system.systemVoltageOverride}
-                recommended={recommendedVoltage}
-                onChange={(systemVoltageOverride) => setSystem({ systemVoltageOverride })}
+      <div className="advanced t-acc" data-open={String(advancedOpen)}>
+        <button
+          type="button"
+          className="t-acc-head advanced__head"
+          aria-expanded={advancedOpen}
+          aria-controls="advanced-panel"
+          onClick={() => setAdvancedOpen((open) => !open)}
+        >
+          <span className="advanced__titles">
+            <span className="advanced__title">Paramètres avancés</span>
+            <span className="advanced__summary">{advancedSummary}</span>
+          </span>
+          {advancedIssues.length > 0 ? (
+            <span
+              className={`badge ${advancedIssues.some((issue) => issue.severity === 'error') ? 'badge--error' : 'badge--warning'}`}
+            >
+              {advancedIssues.length}&nbsp;!
+            </span>
+          ) : null}
+          <span className="t-acc-chevron" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="16" height="16">
+              <path d="M4 6.5L8 10.5L12 6.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
+        <div className="t-acc-panel" id="advanced-panel" inert={!advancedOpen}>
+          <div className="t-acc-panel-inner">
+            <div className="advanced__body">
+              <NumberField
+                label="Coefficient de pertes (DF)"
+                value={system.deratingFactor}
+                hint={
+                  <PresetChips
+                    label="Valeurs types du coefficient de pertes"
+                    values={DERATING_PRESETS}
+                    current={system.deratingFactor}
+                    onPick={(deratingFactor) => setSystem({ deratingFactor })}
+                    caption="0,9 pertes faibles, 0,7 pertes élevées"
+                  />
+                }
+                issues={at('system.deratingFactor')}
+                onChange={(deratingFactor) => setSystem({ deratingFactor })}
               />
-              <p className="field__hint">
-                Règle auto&nbsp;: moins de {formatNumber(VOLTAGE_THRESHOLDS_W.min24V)} W → 12 V, jusqu'à{' '}
-                {formatNumber(VOLTAGE_THRESHOLDS_W.max24V)} W → 24 V, au-delà → 48 V.
-              </p>
-              <IssueList messages={at('system.systemVoltageOverride')} />
+              <NumberField
+                label="Rendement batterie (η)"
+                value={battery.efficiency}
+                hint={Number.isFinite(battery.efficiency) ? `= ${formatPercent(battery.efficiency)}` : undefined}
+                issues={at('battery.efficiency')}
+                onChange={(efficiency) => setBattery({ efficiency })}
+              />
+              <NumberField
+                label="Coefficient de sécurité onduleur"
+                value={system.inverterSafetyFactor}
+                hint="Méthode de l'entreprise : P_inv = E_T × 1,3."
+                issues={at('system.inverterSafetyFactor')}
+                onChange={(inverterSafetyFactor) => setSystem({ inverterSafetyFactor })}
+              />
+              <div className="field">
+                <span className="field__label">Tension du système</span>
+                <VoltagePicker
+                  value={system.systemVoltageOverride}
+                  recommended={recommendedVoltage}
+                  onChange={(systemVoltageOverride) => setSystem({ systemVoltageOverride })}
+                />
+                <p className="field__hint">
+                  Règle auto&nbsp;: moins de {formatNumber(VOLTAGE_THRESHOLDS_W.min24V)} W → 12 V, jusqu'à{' '}
+                  {formatNumber(VOLTAGE_THRESHOLDS_W.max24V)} W → 24 V, au-delà → 48 V.
+                </p>
+                <IssueList messages={at('system.systemVoltageOverride')} />
+              </div>
             </div>
           </div>
-        </fieldset>
+        </div>
       </div>
     </section>
   );

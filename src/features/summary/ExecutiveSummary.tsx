@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { IssueList } from '../../components/IssueList';
+import { SoftText } from '../../components/SoftText';
 import { Stat } from '../../components/Stat';
 import type { SizingOutcome, SizingResults } from '../../engine/types';
 import { CHEMISTRY_LABELS } from '../../ui/labels';
@@ -161,7 +162,7 @@ function Kpi({ title, value, unit, formula, notes }: KpiProps) {
     <article className="kpi">
       <h3 className="kpi__title">{title}</h3>
       <p className="kpi__value">
-        {value}
+        <SoftText text={value} />
         <span className="kpi__unit">{unit}</span>
       </p>
       <p className="kpi__formula">{formula}</p>

@@ -1,3 +1,4 @@
+import { SoftText } from '../../components/SoftText';
 import type { SizingOutcome } from '../../engine/types';
 import { formatNumber, formatUp } from '../../ui/numbers';
 
@@ -10,12 +11,16 @@ export function ResultsBar({ outcome }: { outcome: SizingOutcome }) {
     <a className="results-bar" href="#summary" aria-label="Voir la synthèse du dimensionnement">
       {outcome.ok ? (
         <span className="results-bar__values">
-          <span>Onduleur {formatUp(outcome.results.inverter.ratingW)} W</span>
           <span>
-            {outcome.results.pvArray.panelCount} × {formatNumber(outcome.results.pvArray.panelPowerW)} W
+            Onduleur <SoftText text={formatUp(outcome.results.inverter.ratingW)} /> W
           </span>
           <span>
-            {formatUp(outcome.results.battery.capacityAh)} Ah sous {outcome.results.systemVoltage.voltage} V
+            <SoftText text={String(outcome.results.pvArray.panelCount)} /> ×{' '}
+            {formatNumber(outcome.results.pvArray.panelPowerW)} W
+          </span>
+          <span>
+            <SoftText text={formatUp(outcome.results.battery.capacityAh)} /> Ah sous{' '}
+            {outcome.results.systemVoltage.voltage} V
           </span>
         </span>
       ) : (
