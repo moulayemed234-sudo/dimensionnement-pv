@@ -1,39 +1,40 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { Icon } from '../../components/Icon';
 import { IssueList } from '../../components/IssueList';
-import { Stat } from '../../components/Stat';
+import { SoftText } from '../../components/SoftText';
 import { useNumberInput, type NumberInputState } from '../../components/useNumberInput';
-import { APPLIANCE_PRESETS, type AppliancePreset } from '../../data/appliancePresets';
-import { NUMERIC_RULES } from '../../engine/constants';
+import { APPLIANCE_PRESETS, iconForAppliance, type AppliancePreset } from '../../data/appliancePresets';
+import { CATALOGS } from '../../engine/messages';
 import { calculateApplianceDailyEnergyWh, describeAppliance } from '../../engine/solarEngine';
 import type { Appliance, ValidationIssue } from '../../engine/types';
+import { useI18n } from '../../i18n/useI18n';
+import { readProjectFile } from '../../services/projectFile';
 import { snapshotProject, useProjectStore } from '../../state/projectStore';
 import { isBlankAppliance, type LoadTotals } from '../../state/sizing';
 import { useToastStore } from '../../state/toastStore';
 import { severityOf, type Message } from '../../ui/messages';
 import { formatNumber, formatUp } from '../../ui/numbers';
+import { StepCard } from '../layout/StepCard';
 
 type NumericColumn = 'quantity' | 'powerW' | 'hoursPerDay';
 
 const NUMERIC_COLUMNS: readonly NumericColumn[] = ['quantity', 'powerW', 'hoursPerDay'];
-
-const COLUMNS: Record<
-  NumericColumn,
-  { header: string; cardLabel: string; ariaLabel: string; placeholder: string; inputMode: 'numeric' | 'decimal' }
-> = {
-  quantity: { header: 'Qté', cardLabel: 'Qté', ariaLabel: 'quantité', placeholder: '1', inputMode: 'numeric' },
-  powerW: { header: 'Puissance (W)', cardLabel: 'Watts', ariaLabel: 'puissance en watts', placeholder: 'W', inputMode: 'decimal' },
-  hoursPerDay: { header: 'Heures/jour', cardLabel: 'Heures/jour', ariaLabel: 'heures par jour', placeholder: 'h', inputMode: 'decimal' },
-};
+const INPUT_MODE: Record<NumericColumn, 'numeric' | 'decimal'> = { quantity: 'numeric', powerW: 'decimal', hoursPerDay: 'decimal' };
+const SUGGESTIONS_ID = 'appliance-suggestions';
 
 interface LoadTableProps {
   issues: readonly ValidationIssue[];
   totals: LoadTotals | null;
 }
 
-/** Step 1: the equipment inventory, with per-row energy and table totals. */
+/** Step 1: the equipment inventory, with per-row energy and the daily total. */
 export function LoadTable({ issues, totals }: LoadTableProps) {
+  const { t, locale } = useI18n();
   const appliances = useProjectStore((state) => state.input.appliances);
   const addAppliance = useProjectStore((state) => state.addAppliance);
+  const restoreProject = useProjectStore((state) => state.restoreProject);
+  const showToast = useToastStore((state) => state.show);
+  const fileInput = useRef<HTMLInputElement>(null);
   // The row to animate in, and the row whose name field takes focus.
   const [newId, setNewId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -44,50 +45,81 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
     setFocusId(id);
   };
   const addPreset = (preset: AppliancePreset) => {
-    setNewId(addAppliance(preset));
+    setNewId(addAppliance({ name: preset.names[locale], powerW: preset.powerW, hoursPerDay: preset.hoursPerDay }));
     setFocusId(null);
+  };
+  const importFile = async (file: File | undefined) => {
+    if (!file) return;
+    const project = await readProjectFile(file);
+    if (!project) {
+      showToast(t('toast.importFailed'));
+      return;
+    }
+    const previous = snapshotProject();
+    restoreProject(project);
+    showToast(t('toast.imported', { name: project.info.name || file.name }), previous);
   };
 
   return (
-    <section className="card" aria-labelledby="loads-title">
-      <div className="card__header">
-        <div>
-          <h2 id="loads-title" className="card__title">
-            <span className="step" aria-hidden="true">
-              1
-            </span>
-            Bilan des charges
-          </h2>
-          <p className="card__subtitle">
-            Énergie = qté × puissance × heures. Cochez <strong>Simultané</strong> pour les charges qui peuvent
-            fonctionner en même temps&nbsp;: leur somme donne la puissance de pointe.
-          </p>
-        </div>
-      </div>
+    <StepCard
+      step={1}
+      subtitle={t('loads.subtitle')}
+      actions={
+        <>
+          <button type="button" className="button" onClick={() => fileInput.current?.click()}>
+            <Icon name="upload" size={18} />
+            {t('loads.import')}
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(event) => {
+              void importFile(event.target.files?.[0]);
+              event.target.value = '';
+            }}
+          />
+          <button type="button" className="button button--primary" onClick={addEmpty}>
+            <Icon name="plus" size={18} />
+            {t('loads.add')}
+          </button>
+        </>
+      }
+    >
+      <datalist id={SUGGESTIONS_ID}>
+        {APPLIANCE_PRESETS.map((preset) => (
+          <option key={preset.names.fr} value={preset.names[locale]} />
+        ))}
+      </datalist>
 
       <div className="table-scroll">
         <table className="load-table">
           <thead>
             <tr>
               <th scope="col" className="col-index">
-                #
+                {t('col.index')}
               </th>
               <th scope="col" className="col-name">
-                Équipement
+                {t('col.device')}
               </th>
-              {NUMERIC_COLUMNS.map((column) => (
-                <th key={column} scope="col" className="col-num">
-                  {COLUMNS[column].header}
-                </th>
-              ))}
+              <th scope="col" className="col-num">
+                {t('col.qty')}
+              </th>
+              <th scope="col" className="col-num">
+                {t('col.power')}
+              </th>
+              <th scope="col" className="col-num">
+                {t('col.hours')}
+              </th>
               <th scope="col" className="col-check">
-                Simultané
+                {t('col.simultaneous')}
               </th>
               <th scope="col" className="col-energy">
-                Énergie (Wh/j)
+                {t('col.energy')}
               </th>
               <th scope="col" className="col-action">
-                <span className="visually-hidden">Supprimer</span>
+                <span className="visually-hidden">{t('col.remove')}</span>
               </th>
             </tr>
           </thead>
@@ -104,68 +136,49 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
             ))}
           </tbody>
         </table>
-        {appliances.length === 0 ? (
-          <p className="empty-state">Aucune charge. Ajoutez les équipements utilisés sur le site.</p>
-        ) : null}
+        {appliances.length === 0 ? <p className="empty-state">{t('loads.empty')}</p> : null}
       </div>
 
-      <div className="load-actions">
-        <button type="button" className="add-row" onClick={addEmpty}>
-          <span aria-hidden="true">+</span> Ajouter une charge
-        </button>
-        <div className="quick-add">
-          <span className="quick-add__label" id="quick-add-label">
-            Ajout rapide
-          </span>
-          <div className="quick-add__chips" role="group" aria-labelledby="quick-add-label">
-            {APPLIANCE_PRESETS.map((preset) => (
-              <button
-                key={preset.name}
-                type="button"
-                className="chip"
-                onClick={() => addPreset(preset)}
-                aria-label={`Ajouter ${preset.name}, ${preset.powerW} W, ${preset.hoursPerDay} h par jour`}
-              >
-                {preset.name}
-                <span className="chip__meta">{formatNumber(preset.powerW)} W</span>
-              </button>
-            ))}
-          </div>
+      <p className="field__hint">{t('loads.simultaneousHint')}</p>
+
+      <div className="quick-add">
+        <span className="quick-add__label" id="quick-add-label">
+          {t('loads.quickAdd')}
+        </span>
+        <div className="quick-add__chips" role="group" aria-labelledby="quick-add-label">
+          {APPLIANCE_PRESETS.map((preset) => (
+            <button
+              key={preset.names.fr}
+              type="button"
+              className="chip"
+              onClick={() => addPreset(preset)}
+              aria-label={t('aria.quickAdd', { name: preset.names[locale], w: preset.powerW, h: preset.hoursPerDay })}
+            >
+              <Icon name={preset.icon} size={16} />
+              {preset.names[locale]}
+              <span className="chip__meta num">{formatNumber(preset.powerW)} W</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      <dl className="stats">
-        <Stat
-          label={
-            <>
-              Énergie journalière E<sub>T</sub>
-            </>
-          }
-          value={totals ? formatUp(totals.dailyEnergyWh) : '—'}
-          unit="Wh/j"
-        />
-        <Stat
-          label={
-            <>
-              Énergie journalière E<sub>T2</sub>
-            </>
-          }
-          value={totals ? formatUp(totals.dailyEnergyKWh, 2) : '—'}
-          unit="kWh/j"
-        />
-        <Stat
-          label={
-            <>
-              Puissance de pointe P<sub>peak</sub>
-            </>
-          }
-          value={totals ? formatUp(totals.peakPowerW) : '—'}
-          unit="W"
-          note="Somme des charges simultanées"
-        />
-      </dl>
+      <div className="total-bar">
+        <span className="total-bar__icon" aria-hidden="true">
+          <Icon name="calculator" size={26} />
+        </span>
+        <div>
+          <p className="total-bar__label">{t('loads.total')}</p>
+          <p className="total-bar__value num">
+            <SoftText text={totals ? formatUp(totals.dailyEnergyWh) : '—'} />
+            <span className="total-bar__unit">{t('unit.whDay')}</span>
+          </p>
+        </div>
+        <p className="total-bar__kwh num">
+          = <SoftText text={totals ? formatUp(totals.dailyEnergyKWh, 2) : '—'} /> {t('unit.kwhDay')}
+        </p>
+      </div>
       <IssueList messages={issues.filter((issue) => issue.field === 'appliances')} />
-    </section>
+    </StepCard>
   );
 }
 
@@ -178,6 +191,7 @@ interface LoadRowProps {
 }
 
 function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
+  const { t, locale, labelled, problemText } = useI18n();
   const updateAppliance = useProjectStore((state) => state.updateAppliance);
   const removeAppliance = useProjectStore((state) => state.removeAppliance);
   const showToast = useToastStore((state) => state.show);
@@ -189,15 +203,23 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
   };
   const [touched, setTouched] = useState<ReadonlySet<NumericColumn>>(() => new Set());
 
-  const rowNumber = index + 1;
-  const label = describeAppliance(appliance, index);
+  const n = index + 1;
+  const label = describeAppliance(appliance, index, locale);
+  const rules = CATALOGS[locale].rules;
+  const columnLabel: Record<NumericColumn, string> = { quantity: t('col.qty'), powerW: t('col.powerShort'), hoursPerDay: t('col.hours') };
+  const ariaLabel: Record<NumericColumn, string> = {
+    quantity: t('aria.rowQty', { n }),
+    powerW: t('aria.rowPower', { n }),
+    hoursPerDay: t('aria.rowHours', { n }),
+  };
 
-  // A parse problem replaces the engine's "saisissez un nombre"; an empty cell
-  // is only flagged once the engineer has left it.
+  // A parse problem replaces the engine's "enter a number"; an empty cell is
+  // only flagged once the engineer has left it.
   const columnMessages = (column: NumericColumn): Message[] => {
     const { text, problem } = inputs[column];
     if (problem) {
-      return [{ severity: 'error', message: `${label}, ${NUMERIC_RULES[column].label.toLowerCase()} : ${problem}` }];
+      const fieldLabel = CATALOGS[locale].rowField(label, rules[column].label);
+      return [{ severity: 'error', message: labelled(fieldLabel, problemText(problem)) }];
     }
     if (text.trim() === '' && !touched.has(column)) return [];
     return issues.filter((issue) => issue.field === `appliances.${column}`);
@@ -218,7 +240,7 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
   const remove = () => {
     const previous = snapshotProject();
     removeAppliance(appliance.id);
-    showToast(blank ? 'Ligne vide supprimée.' : `Charge supprimée : ${label}.`, previous);
+    showToast(blank ? t('toast.blankDeleted') : t('toast.deleted', { row: label }), previous);
   };
 
   const rowClass = ['load-row', blank ? 'load-row--blank' : '', isNew ? 'load-row--new' : ''].filter(Boolean).join(' ');
@@ -226,32 +248,36 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
   return (
     <>
       <tr className={rowClass}>
-        <td className="col-index">{rowNumber}</td>
+        <td className="col-index">{n}</td>
         <td className="col-name">
-          <input
-            className="input"
-            value={appliance.name}
-            placeholder="ex. Réfrigérateur"
-            aria-label={`Charge ${rowNumber} : nom`}
-            aria-describedby={describedBy}
-            autoFocus={autoFocus}
-            onChange={(event) => update({ name: event.target.value })}
-          />
+          <div className="device-input">
+            <span className="device-input__icon" aria-hidden="true">
+              <Icon name={iconForAppliance(appliance.name)} size={18} />
+            </span>
+            <input
+              className="input"
+              value={appliance.name}
+              list={SUGGESTIONS_ID}
+              placeholder={t('loads.namePlaceholder')}
+              aria-label={t('aria.rowName', { n })}
+              aria-describedby={describedBy}
+              autoFocus={autoFocus}
+              onChange={(event) => update({ name: event.target.value })}
+            />
+          </div>
         </td>
         {NUMERIC_COLUMNS.map((column) => {
           const severity = severityOf(byColumn[column]);
-          const spec = COLUMNS[column];
           return (
-            <td key={column} className={`col-num col-${column}`} data-label={spec.cardLabel}>
+            <td key={column} className={`col-num col-${column}`} data-label={columnLabel[column]}>
               <input
-                className={severity ? `input input--${severity}` : 'input'}
+                className={severity ? `input input--number input--${severity}` : 'input input--number'}
                 type="text"
-                inputMode={spec.inputMode}
+                inputMode={INPUT_MODE[column]}
                 autoComplete="off"
                 spellCheck={false}
                 value={inputs[column].text}
-                placeholder={spec.placeholder}
-                aria-label={`Charge ${rowNumber} : ${spec.ariaLabel}`}
+                aria-label={ariaLabel[column]}
                 aria-invalid={severity === 'error'}
                 aria-describedby={describedBy}
                 onChange={(event) => inputs[column].setText(event.target.value)}
@@ -265,20 +291,20 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
             <input
               type="checkbox"
               checked={appliance.isSimultaneous}
-              aria-label={`Charge ${rowNumber} : simultanée`}
+              aria-label={t('aria.rowSimultaneous', { n })}
               onChange={(event) => update({ isSimultaneous: event.target.checked })}
             />
             <span className="check-label__text" aria-hidden="true">
-              Simultané
+              {t('col.simultaneous')}
             </span>
           </label>
         </td>
-        <td className="col-energy" data-label="Énergie (Wh/j)">
-          {energyWh === null ? '—' : formatNumber(energyWh, 1)}
+        <td className="col-energy" data-label={t('col.energy')}>
+          <span className="energy-cell num">{energyWh === null ? '—' : formatNumber(energyWh, 1)}</span>
         </td>
         <td className="col-action">
-          <button type="button" className="icon-button" aria-label={`Supprimer ${label}`} title="Supprimer la charge" onClick={remove}>
-            ×
+          <button type="button" className="icon-button" aria-label={t('aria.remove', { row: label })} title={t('col.remove')} onClick={remove}>
+            <Icon name="trash" size={18} />
           </button>
         </td>
       </tr>

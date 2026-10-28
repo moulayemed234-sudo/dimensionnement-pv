@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { Message } from '../ui/messages';
-import { frenchSpacing } from '../ui/typography';
+import { useI18n } from '../i18n/useI18n';
 import { IssueList } from './IssueList';
 
 interface FieldProps {
@@ -15,6 +15,7 @@ interface FieldProps {
 
 /** Label, control, optional hint and validation messages, stacked. */
 export function Field({ label, htmlFor, children, hint, hintId, messages = [], messagesId }: FieldProps) {
+  const { text } = useI18n();
   return (
     <div className="field">
       <label className="field__label" htmlFor={htmlFor}>
@@ -23,7 +24,7 @@ export function Field({ label, htmlFor, children, hint, hintId, messages = [], m
       {children}
       {hint ? (
         <div className="field__hint" id={hintId}>
-          {typeof hint === 'string' ? frenchSpacing(hint) : hint}
+          {typeof hint === 'string' ? text(hint) : hint}
         </div>
       ) : null}
       <IssueList id={messagesId} messages={messages} />

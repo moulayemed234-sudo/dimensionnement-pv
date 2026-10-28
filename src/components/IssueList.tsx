@@ -1,5 +1,5 @@
+import { useI18n } from '../i18n/useI18n';
 import type { Message } from '../ui/messages';
-import { frenchSpacing } from '../ui/typography';
 
 interface IssueListProps {
   messages: readonly Message[];
@@ -8,6 +8,7 @@ interface IssueListProps {
 
 /** Validation messages; severity is conveyed by icon and hidden text, not colour alone. */
 export function IssueList({ messages, id }: IssueListProps) {
+  const { t, text } = useI18n();
   if (messages.length === 0) return null;
   return (
     <ul className="issues" id={id}>
@@ -17,8 +18,8 @@ export function IssueList({ messages, id }: IssueListProps) {
             {m.severity === 'error' ? '×' : '!'}
           </span>
           <span>
-            <span className="visually-hidden">{m.severity === 'error' ? 'Erreur : ' : 'Avertissement : '}</span>
-            {frenchSpacing(m.message)}
+            <span className="visually-hidden">{m.severity === 'error' ? t('issue.error') : t('issue.warning')}</span>
+            {text(m.message)}
           </span>
         </li>
       ))}

@@ -27,6 +27,7 @@ import {
   VOLTAGE_THRESHOLDS_W,
   type NumericRule,
 } from './constants';
+import { CATALOGS, type Locale, type MessageCatalog, type RuleKey } from './messages';
 import type {
   Appliance,
   BatteryChemistry,
@@ -403,13 +404,18 @@ function formatValue(value: number, unit = ''): string {
   return unit ? `${text} ${unit}` : text;
 }
 
-/** French typography: no-break space before ":", ";", "!", "?" and inside « », so lines never start with punctuation. */
-function frenchSpacing(text: string): string {
-  return text.replace(/ ([:;!?»])/g, ' $1').replace(/« /g, '« ');
-}
+/** Collects issues worded in one language. */
+class IssueCollector {
+  readonly issues: ValidationIssue[] = [];
+  readonly text: MessageCatalog;
 
-function makeIssue(severity: IssueSeverity, code: IssueCode, target: IssueTarget, message: string): ValidationIssue {
-  return { severity, code, ...target, message: frenchSpacing(message) };
+  constructor(locale: Locale) {
+    this.text = CATALOGS[locale];
+  }
+
+  add(severity: IssueSeverity, code: IssueCode, target: IssueTarget, message: string): void {
+    this.issues.push({ severity, code, ...target, message: this.text.finalize(message) });
+  }
 }
 
 function applianceName(appliance: Appliance): string {
@@ -420,179 +426,135 @@ function applianceName(appliance: Appliance): string {
  * How messages name a load-table row: « Réfrigérateur », or "Charge n° 3" when
  * unnamed. Exported so UI-side messages name rows exactly like the engine does.
  */
-export function describeAppliance(appliance: Appliance, index: number): string {
+export function describeAppliance(appliance: Appliance, index: number, locale: Locale = 'fr'): string {
   const name = applianceName(appliance);
-  return name ? `« ${name} »` : `Charge n° ${index + 1}`;
+  const text = CATALOGS[locale];
+  return name ? text.namedRow(name) : text.unnamedRow(index + 1);
 }
 
 /**
- * Checks one numeric input against its rule and pushes at most one issue.
+ * Checks one numeric input against its rule and records at most one issue.
  * Returns false when the value is unusable (an error was recorded).
  */
 function checkNumber(
-  issues: ValidationIssue[],
+  out: IssueCollector,
   value: unknown,
-  rule: NumericRule,
+  ruleKey: RuleKey,
   target: IssueTarget,
-  label: string = rule.label,
+  label: string = out.text.rules[ruleKey].label,
 ): boolean {
+  const rule: NumericRule = NUMERIC_RULES[ruleKey];
+  const { unit, hint = '' } = out.text.rules[ruleKey];
+  const t = out.text;
   const fail = (code: IssueCode, message: string): false => {
-    issues.push(makeIssue('error', code, target, message));
+    out.add('error', code, target, message);
     return false;
   };
-  const { min, max, unit, typical } = rule;
+  const { min, max, typical } = rule;
 
-  // "Label : …" keeps the sentence grammatical whatever the gender of the label.
-  if (!isFiniteNumber(value)) return fail('INVALID_NUMBER', `${label} : saisissez un nombre.`);
-  if (rule.integer && !Number.isInteger(value)) return fail('NOT_INTEGER', `${label} : saisissez un nombre entier.`);
+  if (!isFiniteNumber(value)) return fail('INVALID_NUMBER', t.invalidNumber(label));
+  if (rule.integer && !Number.isInteger(value)) return fail('NOT_INTEGER', t.notInteger(label));
   if (min !== undefined && rule.exclusiveMin && value <= min) {
-    return fail('OUT_OF_RANGE', `${label} : la valeur doit être supérieure à ${formatValue(min, unit)}.`);
+    return fail('OUT_OF_RANGE', t.greaterThan(label, formatValue(min, unit)));
   }
   if (min !== undefined && value < min) {
-    return fail(
-      'OUT_OF_RANGE',
-      min === 0
-        ? `${label} : la valeur ne peut pas être négative.`
-        : `${label} : la valeur doit être d'au moins ${formatValue(min, unit)}.`,
-    );
+    return fail('OUT_OF_RANGE', min === 0 ? t.notNegative(label) : t.atLeast(label, formatValue(min, unit)));
   }
   if (max !== undefined && value > max) {
-    return fail('OUT_OF_RANGE', `${label} : la valeur ne doit pas dépasser ${formatValue(max, unit)}.`);
+    return fail('OUT_OF_RANGE', t.notExceed(label, formatValue(max, unit)));
   }
 
   if (typical && (value < typical.min || value > typical.max)) {
-    issues.push(
-      makeIssue(
-        'warning',
-        'NON_STANDARD_VALUE',
-        target,
-        `${label} : ${formatValue(value, unit)}, hors de la plage usuelle ` +
-          `${formatValue(typical.min)}–${formatValue(typical.max, unit)}. ${typical.hint}`,
-      ),
+    out.add(
+      'warning',
+      'NON_STANDARD_VALUE',
+      target,
+      t.outsideTypical(label, formatValue(value, unit), formatValue(typical.min), formatValue(typical.max, unit), hint),
     );
   }
   return true;
 }
 
-function validateAppliances(appliances: readonly Appliance[]): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+function validateAppliances(out: IssueCollector, appliances: readonly Appliance[]): void {
+  const t = out.text;
   if (appliances.length === 0) {
-    issues.push(makeIssue('error', 'NO_APPLIANCES', { field: 'appliances' }, 'Ajoutez au moins une charge au tableau.'));
-    return issues;
+    out.add('error', 'NO_APPLIANCES', { field: 'appliances' }, t.noAppliances);
+    return;
   }
 
   const seenIds = new Set<string>();
   appliances.forEach((appliance, index) => {
     const { id } = appliance;
-    const row = describeAppliance(appliance, index);
+    const row = rowName(t, appliance, index);
     const at = (field: keyof Appliance): IssueTarget => ({ field: `appliances.${field}`, applianceId: id });
-    const checkRowNumber = (field: 'quantity' | 'powerW' | 'hoursPerDay'): boolean => {
-      const rule = NUMERIC_RULES[field];
-      return checkNumber(issues, appliance[field], rule, at(field), `${row}, ${rule.label.toLowerCase()}`);
-    };
+    const checkRowNumber = (field: 'quantity' | 'powerW' | 'hoursPerDay'): boolean =>
+      checkNumber(out, appliance[field], field, at(field), t.rowField(row, t.rules[field].label));
 
     if (typeof id !== 'string' || id.trim() === '') {
-      issues.push(makeIssue('error', 'MISSING_ID', { field: 'appliances.id' }, `${row} : identifiant manquant.`));
+      out.add('error', 'MISSING_ID', { field: 'appliances.id' }, t.missingId(row));
     } else if (seenIds.has(id)) {
-      issues.push(
-        makeIssue('error', 'DUPLICATE_ID', at('id'), `${row} : identifiant déjà utilisé par une autre charge.`),
-      );
+      out.add('error', 'DUPLICATE_ID', at('id'), t.duplicateId(row));
     } else {
       seenIds.add(id);
     }
 
-    if (!applianceName(appliance)) issues.push(makeIssue('warning', 'MISSING_NAME', at('name'), `${row} : nom manquant.`));
+    if (!applianceName(appliance)) out.add('warning', 'MISSING_NAME', at('name'), t.missingName(row));
 
     checkRowNumber('quantity');
     checkRowNumber('powerW');
     if (checkRowNumber('hoursPerDay') && appliance.hoursPerDay === 0) {
-      issues.push(makeIssue('warning', 'ZERO_USAGE', at('hoursPerDay'), `${row} : 0 h par jour, aucune énergie ajoutée.`));
+      out.add('warning', 'ZERO_USAGE', at('hoursPerDay'), t.zeroUsage(row));
     }
 
     if (typeof appliance.isSimultaneous !== 'boolean') {
-      issues.push(
-        makeIssue('error', 'INVALID_OPTION', at('isSimultaneous'), `${row} : indiquez si la charge est simultanée ou non.`),
-      );
+      out.add('error', 'INVALID_OPTION', at('isSimultaneous'), t.simultaneousInvalid(row));
     }
   });
-  return issues;
 }
 
-function validateSystemParameters(system: SystemParameters): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+function validateSystemParameters(out: IssueCollector, system: SystemParameters): void {
   const numericFields = ['peakSunHours', 'deratingFactor', 'panelPowerW', 'inverterSafetyFactor'] as const;
   for (const field of numericFields) {
-    checkNumber(issues, system[field], NUMERIC_RULES[field], { field: `system.${field}` });
+    checkNumber(out, system[field], field, { field: `system.${field}` });
   }
 
   const override = system.systemVoltageOverride ?? null;
   if (override !== null && !isSystemVoltage(override)) {
-    issues.push(
-      makeIssue(
-        'error',
-        'INVALID_OPTION',
-        { field: 'system.systemVoltageOverride' },
-        `Tension du système : choisissez Auto ou ${SYSTEM_VOLTAGES.join(' / ')} V.`,
-      ),
+    out.add(
+      'error',
+      'INVALID_OPTION',
+      { field: 'system.systemVoltageOverride' },
+      out.text.voltageInvalid(SYSTEM_VOLTAGES.join(' / ')),
     );
   }
-  return issues;
 }
 
-function validateBatteryConfig(battery: BatteryConfig): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+function validateBatteryConfig(out: IssueCollector, battery: BatteryConfig): void {
   if (!isBatteryChemistry(battery.chemistry)) {
-    issues.push(
-      makeIssue('error', 'INVALID_OPTION', { field: 'battery.chemistry' }, 'Choisissez une technologie de batterie.'),
-    );
+    out.add('error', 'INVALID_OPTION', { field: 'battery.chemistry' }, out.text.chemistryInvalid);
   } else if (battery.chemistry === 'custom') {
     const rule = NUMERIC_RULES.customDepthOfDischarge;
     const target: IssueTarget = { field: 'battery.customDepthOfDischarge' };
     if (battery.customDepthOfDischarge === undefined) {
-      issues.push(
-        makeIssue(
-          'error',
-          'REQUIRED',
-          target,
-          `Saisissez une profondeur de décharge entre ${formatValue(rule.min)} et ${formatValue(rule.max)} ` +
-            'pour la batterie personnalisée.',
-        ),
-      );
+      out.add('error', 'REQUIRED', target, out.text.customDodRequired(formatValue(rule.min), formatValue(rule.max)));
     } else {
-      checkNumber(issues, battery.customDepthOfDischarge, rule, target);
+      checkNumber(out, battery.customDepthOfDischarge, 'customDepthOfDischarge', target);
     }
   }
-  checkNumber(issues, battery.efficiency, NUMERIC_RULES.batteryEfficiency, { field: 'battery.efficiency' });
-  checkNumber(issues, battery.daysOfAutonomy, NUMERIC_RULES.daysOfAutonomy, { field: 'battery.daysOfAutonomy' });
-  return issues;
+  checkNumber(out, battery.efficiency, 'batteryEfficiency', { field: 'battery.efficiency' });
+  checkNumber(out, battery.daysOfAutonomy, 'daysOfAutonomy', { field: 'battery.daysOfAutonomy' });
 }
 
 /** Whole-table checks; they assume every row is individually valid. */
-function validateLoadProfile(appliances: readonly Appliance[], system: SystemParameters): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
+function validateLoadProfile(out: IssueCollector, appliances: readonly Appliance[], system: SystemParameters): void {
+  const t = out.text;
   const peakPowerW = calculatePeakPowerW(appliances);
   const dailyEnergyWh = calculateDailyEnergyWh(appliances);
 
-  if (dailyEnergyWh === 0) {
-    issues.push(
-      makeIssue(
-        'error',
-        'NO_ENERGY_DEMAND',
-        { field: 'appliances' },
-        "Énergie journalière totale nulle (0 Wh) : saisissez les heures d'utilisation d'au moins une charge.",
-      ),
-    );
-  }
+  if (dailyEnergyWh === 0) out.add('error', 'NO_ENERGY_DEMAND', { field: 'appliances' }, t.noEnergy);
   if (peakPowerW === 0) {
-    issues.push(
-      makeIssue(
-        'error',
-        'NO_SIMULTANEOUS_LOAD',
-        { field: 'appliances' },
-        'Puissance de pointe nulle (0 W) : cochez « Simultané » pour au moins une charge.',
-      ),
-    );
-    return issues;
+    out.add('error', 'NO_SIMULTANEOUS_LOAD', { field: 'appliances' }, t.noSimultaneous);
+    return;
   }
 
   // P_peak only sums simultaneous loads, but an excluded load still runs on its own.
@@ -600,16 +562,11 @@ function validateLoadProfile(appliances: readonly Appliance[], system: SystemPar
     if (appliance.isSimultaneous) return;
     const totalPowerW = calculateApplianceTotalPowerW(appliance);
     if (totalPowerW > peakPowerW) {
-      issues.push(
-        makeIssue(
-          'warning',
-          'EXCLUDED_LOAD_EXCEEDS_PEAK',
-          { field: 'appliances.isSimultaneous', applianceId: appliance.id },
-          `${describeAppliance(appliance, index)} (${formatValue(totalPowerW, 'W')}) ne fait pas partie des ` +
-            `charges simultanées, mais sa puissance dépasse à elle seule la pointe calculée (${formatValue(peakPowerW, 'W')}). ` +
-            "La pointe, qui fixe la tension du système, est sous-estimée : cochez « Simultané » " +
-            'ou revoyez le planning des charges.',
-        ),
+      out.add(
+        'warning',
+        'EXCLUDED_LOAD_EXCEEDS_PEAK',
+        { field: 'appliances.isSimultaneous', applianceId: appliance.id },
+        t.excludedLoad(rowName(t, appliance, index), formatValue(totalPowerW, 'W'), formatValue(peakPowerW, 'W')),
       );
     }
   });
@@ -620,15 +577,11 @@ function validateLoadProfile(appliances: readonly Appliance[], system: SystemPar
   if (isFiniteNumber(factor) && factor >= 1) {
     const inverterW = calculateInverterRatingW(dailyEnergyWh, factor);
     if (peakPowerW > inverterW) {
-      issues.push(
-        makeIssue(
-          'warning',
-          'PEAK_EXCEEDS_INVERTER',
-          { field: 'system.inverterSafetyFactor' },
-          `La puissance de pointe (${formatValue(peakPowerW, 'W')}) dépasse la puissance onduleur calculée ` +
-            `(${formatValue(inverterW, 'W')}) : l'onduleur ne pourrait pas alimenter toutes les charges ` +
-            "simultanées. Choisissez un onduleur d'au moins la puissance de pointe.",
-        ),
+      out.add(
+        'warning',
+        'PEAK_EXCEEDS_INVERTER',
+        { field: 'system.inverterSafetyFactor' },
+        t.peakExceedsInverter(formatValue(peakPowerW, 'W'), formatValue(inverterW, 'W')),
       );
     }
   }
@@ -637,19 +590,24 @@ function validateLoadProfile(appliances: readonly Appliance[], system: SystemPar
   if (override !== null && isSystemVoltage(override)) {
     const recommended = recommendSystemVoltage(peakPowerW);
     if (override < recommended) {
-      issues.push(
-        makeIssue(
-          'warning',
-          'VOLTAGE_BELOW_RECOMMENDED',
-          { field: 'system.systemVoltageOverride' },
-          `Tension forcée à ${override} V, en dessous des ${recommended} V recommandés pour une pointe de ` +
-            `${formatValue(peakPowerW, 'W')}. Prévoyez environ ${formatValue(Math.round(peakPowerW / override), 'A')} ` +
-            'sur le bus continu en pointe : vérifiez la section des câbles et les protections.',
+      out.add(
+        'warning',
+        'VOLTAGE_BELOW_RECOMMENDED',
+        { field: 'system.systemVoltageOverride' },
+        t.voltageBelow(
+          override,
+          recommended,
+          formatValue(peakPowerW, 'W'),
+          formatValue(Math.round(peakPowerW / override), 'A'),
         ),
       );
     }
   }
-  return issues;
+}
+
+function rowName(t: MessageCatalog, appliance: Appliance, index: number): string {
+  const name = applianceName(appliance);
+  return name ? t.namedRow(name) : t.unnamedRow(index + 1);
 }
 
 /** True when at least one issue blocks the calculation. */
@@ -660,15 +618,16 @@ export function hasErrors(issues: readonly ValidationIssue[]): boolean {
 /**
  * Validates a sizing input. Errors mark impossible or unusable values and block
  * the calculation; warnings mark non-standard values an engineer should confirm.
+ * `locale` only changes the wording of the messages.
  */
-export function validateSizingInput(input: SizingInput): ValidationIssue[] {
-  const applianceIssues = validateAppliances(input.appliances);
-  return [
-    ...applianceIssues,
-    ...validateSystemParameters(input.system),
-    ...validateBatteryConfig(input.battery),
-    ...(hasErrors(applianceIssues) ? [] : validateLoadProfile(input.appliances, input.system)),
-  ];
+export function validateSizingInput(input: SizingInput, locale: Locale = 'fr'): ValidationIssue[] {
+  const out = new IssueCollector(locale);
+  validateAppliances(out, input.appliances);
+  const rowsHaveErrors = hasErrors(out.issues);
+  validateSystemParameters(out, input.system);
+  validateBatteryConfig(out, input.battery);
+  if (!rowsHaveErrors) validateLoadProfile(out, input.appliances, input.system);
+  return out.issues;
 }
 
 // ─── Orchestration ───────────────────────────────────────────────────────────
@@ -677,8 +636,8 @@ export function validateSizingInput(input: SizingInput): ValidationIssue[] {
  * Validates the input and, when nothing blocks, runs steps A–E. Never throws
  * for a well-typed input: every problem comes back in `issues`.
  */
-export function calculateSizing(input: SizingInput): SizingOutcome {
-  const issues = validateSizingInput(input);
+export function calculateSizing(input: SizingInput, locale: Locale = 'fr'): SizingOutcome {
+  const issues = validateSizingInput(input, locale);
   if (hasErrors(issues)) return { ok: false, results: null, issues };
 
   const { appliances, system, battery } = input;

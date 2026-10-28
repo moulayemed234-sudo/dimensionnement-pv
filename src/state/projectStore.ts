@@ -7,7 +7,8 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { DEFAULTS } from '../engine/constants';
 import type { Appliance, BatteryConfig, ProjectInfo, SizingInput, SystemParameters } from '../engine/types';
-import type { AppliancePreset } from '../data/appliancePresets';
+import type { Locale } from '../engine/messages';
+import { useSettingsStore } from '../i18n/settings';
 import { NOUAKCHOTT, findLocation } from '../data/locations';
 
 /** Everything that describes a sizing project. */
@@ -24,20 +25,27 @@ interface ProjectActions {
    * Adds a load row and returns its id: empty, or filled from a preset. A preset
    * fills the last row instead when that row is still blank.
    */
-  addAppliance: (preset?: AppliancePreset) => string;
+  addAppliance: (preset?: LoadTemplate) => string;
   updateAppliance: (id: string, patch: Partial<Omit<Appliance, 'id'>>) => void;
   removeAppliance: (id: string) => void;
   /** Picks a location preset (copying its PSH), or null to enter PSH by hand. */
   selectLocation: (locationId: string | null) => void;
   setSystem: (patch: Partial<SystemParameters>) => void;
   setBattery: (patch: Partial<BatteryConfig>) => void;
-  newProject: () => void;
-  loadExample: () => void;
+  newProject: (locale: Locale) => void;
+  loadExample: (locale: Locale) => void;
   /** Puts back a project replaced a moment ago (undo). */
   restoreProject: (project: ProjectData) => void;
 }
 
 export type ProjectStore = ProjectData & ProjectActions;
+
+/** A load to add, already named in the interface language. */
+export interface LoadTemplate {
+  name: string;
+  powerW: number;
+  hoursPerDay: number;
+}
 
 /** crypto.randomUUID only exists in secure contexts; a field laptop may serve over plain http. */
 function createId(): string {
@@ -77,36 +85,43 @@ function defaultBattery(): BatteryConfig {
   return { chemistry: 'lifepo4', efficiency: DEFAULTS.batteryEfficiency, daysOfAutonomy: DEFAULTS.daysOfAutonomy };
 }
 
-function blankProject(): ProjectData {
+const PROJECT_NAMES: Readonly<Record<Locale, { blank: string; example: string; site: string }>> = {
+  fr: { blank: 'Nouveau projet', example: 'Exemple : maison familiale', site: 'Nouakchott' },
+  ar: { blank: 'مشروع جديد', example: 'مثال: منزل عائلي', site: 'نواكشوط' },
+};
+
+/** The example loads, named in each language; the values are the same. */
+const EXAMPLE_LOADS: readonly [Readonly<Record<Locale, string>>, number, number, number][] = [
+  [{ fr: 'Lampes LED', ar: 'مصابيح LED' }, 8, 10, 6],
+  [{ fr: 'Ventilateurs de plafond', ar: 'مراوح سقف' }, 3, 60, 8],
+  [{ fr: 'Réfrigérateur', ar: 'ثلاجة' }, 1, 150, 10],
+  [{ fr: 'Téléviseur', ar: 'تلفاز' }, 1, 80, 5],
+  [{ fr: 'Ordinateur portable', ar: 'حاسوب محمول' }, 1, 65, 4],
+  [{ fr: 'Chargeurs de téléphone', ar: 'شواحن هواتف' }, 4, 10, 3],
+  [{ fr: 'Pompe à eau', ar: 'مضخة ماء' }, 1, 750, 2],
+];
+
+function blankProject(locale: Locale): ProjectData {
   return {
-    info: { name: 'Nouveau projet' },
+    info: { name: PROJECT_NAMES[locale].blank },
     locationId: NOUAKCHOTT.id,
     input: { appliances: [emptyAppliance()], system: defaultSystem(), battery: defaultBattery() },
   };
 }
 
-function exampleProject(): ProjectData {
-  const load = (name: string, quantity: number, powerW: number, hoursPerDay: number): Appliance => ({
-    id: createId(),
-    name,
-    quantity,
-    powerW,
-    hoursPerDay,
-    isSimultaneous: true,
-  });
+function exampleProject(locale: Locale): ProjectData {
   return {
-    info: { name: 'Exemple : maison familiale', site: 'Nouakchott' },
+    info: { name: PROJECT_NAMES[locale].example, site: PROJECT_NAMES[locale].site },
     locationId: NOUAKCHOTT.id,
     input: {
-      appliances: [
-        load('Lampes LED', 8, 10, 6),
-        load('Ventilateurs de plafond', 3, 60, 8),
-        load('Réfrigérateur', 1, 150, 10),
-        load('Téléviseur', 1, 80, 5),
-        load('Ordinateur portable', 1, 65, 4),
-        load('Chargeurs de téléphone', 4, 10, 3),
-        load('Pompe à eau', 1, 750, 2),
-      ],
+      appliances: EXAMPLE_LOADS.map(([names, quantity, powerW, hoursPerDay]) => ({
+        id: createId(),
+        name: names[locale],
+        quantity,
+        powerW,
+        hoursPerDay,
+        isSimultaneous: true,
+      })),
       system: defaultSystem(),
       battery: defaultBattery(),
     },
@@ -114,7 +129,7 @@ function exampleProject(): ProjectData {
 }
 
 /** Rejects a stored draft whose shape the engine can't read (old version, hand-edited storage). */
-function isProjectData(value: unknown): value is ProjectData {
+export function isProjectData(value: unknown): value is ProjectData {
   if (typeof value !== 'object' || value === null) return false;
   const { info, input } = value as Partial<ProjectData>;
   return (
@@ -134,7 +149,7 @@ function isProjectData(value: unknown): value is ProjectData {
 export const useProjectStore = create<ProjectStore>()(
   persist(
     (set, get) => ({
-      ...exampleProject(),
+      ...exampleProject(useSettingsStore.getState().locale),
 
       setInfo: (patch) => set((state) => ({ info: { ...state.info, ...patch } })),
 
@@ -178,9 +193,9 @@ export const useProjectStore = create<ProjectStore>()(
       setBattery: (patch) =>
         set((state) => ({ input: { ...state.input, battery: { ...state.input.battery, ...patch } } })),
 
-      newProject: () => set(blankProject()),
+      newProject: (locale) => set(blankProject(locale)),
 
-      loadExample: () => set(exampleProject()),
+      loadExample: (locale) => set(exampleProject(locale)),
 
       restoreProject: (project) => set(project),
     }),

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useProjectStore } from '../state/projectStore';
 import { useToastStore } from '../state/toastStore';
-import { frenchSpacing } from '../ui/typography';
+import { useI18n } from '../i18n/useI18n';
 
 const VISIBLE_MS = 10_000;
 
@@ -12,6 +12,7 @@ export function UndoToast() {
   const id = useToastStore((state) => state.id);
   const hide = useToastStore((state) => state.hide);
   const restoreProject = useProjectStore((state) => state.restoreProject);
+  const { t, text } = useI18n();
   // Keep the last text on screen while the toast slides out.
   const [shown, setShown] = useState({ message: '', canUndo: false });
 
@@ -25,7 +26,7 @@ export function UndoToast() {
   const open = message !== null;
   return (
     <div className={open ? 'toast t-toast is-open' : 'toast t-toast'} role="status" aria-hidden={!open} inert={!open}>
-      <span>{frenchSpacing(shown.message)}</span>
+      <span>{text(shown.message)}</span>
       {shown.canUndo ? (
         <button
           type="button"
@@ -35,7 +36,7 @@ export function UndoToast() {
             hide();
           }}
         >
-          Annuler
+          {t('toast.undo')}
         </button>
       ) : null}
     </div>

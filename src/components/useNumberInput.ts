@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { parseDecimalInput, toInputText } from '../ui/numbers';
+import { parseDecimalInput, toInputText, type ParseProblem } from '../ui/numbers';
 
 export interface NumberInputState {
   text: string;
   /** Why the text can't be read as a number, or null. */
-  problem: string | null;
+  problem: ParseProblem | null;
   setText: (text: string) => void;
 }
 

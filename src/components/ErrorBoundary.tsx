@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { useSettingsStore } from '../i18n/settings';
+import { makeI18n } from '../i18n/useI18n';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -24,12 +26,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   override render(): ReactNode {
     if (!this.state.error) return this.props.children;
+    const { t } = makeI18n(useSettingsStore.getState().locale);
     return (
-      <div className="app">
+      <div className="fatal-wrap">
         <div className="card fatal" role="alert">
-          <h1 className="card__title">Une erreur est survenue</h1>
-          <p>L'application a rencontré une erreur inattendue&nbsp;: {this.state.error.message}</p>
-          <p>Démarrer un nouveau projet efface le brouillon enregistré qui a pu la provoquer.</p>
+          <h1 className="card__title">{t('fatal.title')}</h1>
+          <p>{t('fatal.body', { message: this.state.error.message })}</p>
+          <p>{t('fatal.hint')}</p>
           <div>
             <button
               type="button"
@@ -39,7 +42,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                 this.setState({ error: null });
               }}
             >
-              Démarrer un nouveau projet
+              {t('fatal.reset')}
             </button>
           </div>
         </div>

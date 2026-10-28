@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from 'react';
 import type { ValidationIssue } from '../engine/types';
+import { useI18n } from '../i18n/useI18n';
 import { severityOf, type Message } from '../ui/messages';
 import { toInputText } from '../ui/numbers';
 import { Field } from './Field';
@@ -18,12 +19,13 @@ interface NumberFieldProps {
 /** Labelled number input with unit, hint and inline validation. Accepts "5,5" or "5.5". */
 export function NumberField({ label, value, onChange, unit, hint, issues = [], readOnly = false }: NumberFieldProps) {
   const id = useId();
+  const { labelled, problemText } = useI18n();
   const { text, problem, setText } = useNumberInput(value, onChange);
   const [touched, setTouched] = useState(false);
 
   // An empty field is only flagged once the engineer has left it.
   const messages: Message[] = problem
-    ? [{ severity: 'error', message: `${label} : ${problem}` }]
+    ? [{ severity: 'error', message: labelled(label, problemText(problem)) }]
     : touched || text.trim() !== ''
       ? [...issues]
       : [];
