@@ -97,7 +97,7 @@ function Results({ results }: { results: SizingResults }) {
           unit="W"
           formula={
             <>
-              P<sub>inv</sub> = {formatNumber(load.peakPowerW, 1)} W × {formatNumber(inverter.safetyFactor, 2)}
+              P<sub>inv</sub> = E<sub>T</sub> {formatNumber(load.dailyEnergyWh, 1)} × {formatNumber(inverter.safetyFactor, 2)}
             </>
           }
           notes={['Choisissez la taille standard immédiatement supérieure ; vérifiez sa tenue aux pointes des moteurs.']}
