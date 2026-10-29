@@ -68,7 +68,7 @@ const fr = {
   'battery.efficiency': 'Rendement batterie (η)',
 
   'inverter.factor': 'Coefficient de sécurité onduleur',
-  'inverter.factorHint': "Méthode de l'entreprise : P_inv = E_T × 1,3.",
+  'inverter.factorHint': 'P_inv = P_peak × 1,3 (marge de 30 %).',
   'inverter.voltage': 'Tension du système',
   'inverter.auto': 'Auto',
   'inverter.rule': 'Règle auto : moins de {a} W → 12 V, jusqu’à {b} W → 24 V, au-delà → 48 V.',
@@ -87,7 +87,7 @@ const fr = {
   'summary.pv': 'Panneaux solaires',
   'summary.battery': 'Batteries',
   'summary.inverter': 'Onduleur',
-  'summary.inverterSub': 'E_T × {f} (méthode de l’entreprise)',
+  'summary.inverterSub': 'Puissance de pointe × {f}',
   'summary.voltage': 'Tension du système',
 
   'report.tab.assumptions': 'Hypothèses et formules',
@@ -210,7 +210,7 @@ const ar: Record<StringKey, string> = {
   'battery.efficiency': 'كفاءة البطارية (η)',
 
   'inverter.factor': 'معامل أمان العاكس',
-  'inverter.factorHint': 'طريقة الشركة: ⁨P_inv = E_T × 1,3⁩.',
+  'inverter.factorHint': '⁨P_inv = P_peak × 1,3⁩ (هامش ⁨30 %⁩).',
   'inverter.voltage': 'جهد النظام',
   'inverter.auto': 'تلقائي',
   'inverter.rule': 'القاعدة: أقل من ⁨{a} W⁩ ← ⁨12 V⁩، حتى ⁨{b} W⁩ ← ⁨24 V⁩، أكثر ← ⁨48 V⁩.',
@@ -229,7 +229,7 @@ const ar: Record<StringKey, string> = {
   'summary.pv': 'الألواح الشمسية',
   'summary.battery': 'البطاريات',
   'summary.inverter': 'العاكس',
-  'summary.inverterSub': '⁨E_T × {f}⁩ (طريقة الشركة)',
+  'summary.inverterSub': 'قدرة الذروة × ⁨{f}⁩',
   'summary.voltage': 'جهد النظام',
 
   'report.tab.assumptions': 'الافتراضات والمعادلات',

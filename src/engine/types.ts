@@ -79,7 +79,7 @@ export interface SystemParameters {
   deratingFactor: number;
   /** STC rating of one PV module, in watts (e.g. 630). */
   panelPowerW: number;
-  /** Inverter margin applied to E_T (company method); default 1.3 (+30 %). */
+  /** Inverter margin over P_peak; default 1.3 (+30 % surge/safety margin). */
   inverterSafetyFactor: number;
   /** Forces V_syst; `null` applies the automatic peak-power rule. */
   systemVoltageOverride: SystemVoltage | null;
@@ -130,7 +130,7 @@ export interface SystemVoltageSelection {
 /** C. Inverter. */
 export interface InverterSizing {
   safetyFactor: number;
-  /** P_inv = E_T × safetyFactor (W), company method. */
+  /** P_inv = P_peak × safetyFactor (W). */
   ratingW: number;
 }
 
@@ -190,7 +190,6 @@ export type IssueCode =
   | 'NO_ENERGY_DEMAND' // E_T = 0
   | 'NO_SIMULTANEOUS_LOAD' // P_peak = 0
   | 'EXCLUDED_LOAD_EXCEEDS_PEAK' // a non-simultaneous load larger than P_peak
-  | 'PEAK_EXCEEDS_INVERTER' // P_peak larger than the E_T-based inverter rating
   | 'VOLTAGE_BELOW_RECOMMENDED'; // override lower than the automatic rule
 
 /** The input an issue points at, so the UI can show it next to that control. */

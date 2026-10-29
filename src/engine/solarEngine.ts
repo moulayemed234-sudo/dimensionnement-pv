@@ -3,7 +3,7 @@
  *
  *   Appliances ─► A. Load analysis   Eᵢ = n·P·h,  E_T = ΣEᵢ,  P_peak = Σ n·P (simultaneous loads)
  *              ─► B. System voltage  12 V (< 1 kW) · 24 V (1–2 kW) · 48 V (> 2 kW), overridable
- *              ─► C. Inverter        P_inv = E_T × 1.3 (company method; warns if P_peak exceeds it)
+ *              ─► C. Inverter        P_inv = P_peak × 1.3
  *              ─► D. PV array        W_PV = E_T / (DF × PSH),  N_P = ⌈W_PV / P_module⌉
  *              ─► E. Battery bank    C_Ah = E_T × N_j / (η × DoD × V_syst)
  *
@@ -226,27 +226,26 @@ export function selectSystemVoltage(
 // ─── C. Inverter ─────────────────────────────────────────────────────────────
 
 /**
- * Inverter nominal rating, company method: P_inv = E_T × safety factor, i.e. the
- * daily energy figure (Wh/day) taken as watts, plus a 30 % margin by default.
- * Validation warns when P_peak exceeds this rating (see PEAK_EXCEEDS_INVERTER).
- * @throws SolarEngineError if safetyFactor < 1.
- * @example calculateInverterRatingW(5700) // 7410
+ * Inverter nominal rating: P_inv = P_peak × safety factor (W). The default 1.3
+ * adds the standard 30 % surge/safety margin.
+ * @throws SolarEngineError if safetyFactor < 1: an inverter below the peak load is never acceptable.
+ * @example calculateInverterRatingW(2080) // 2704
  */
 export function calculateInverterRatingW(
-  dailyEnergyWh: number,
+  peakPowerW: number,
   safetyFactor: number = DEFAULTS.inverterSafetyFactor,
 ): number {
-  assertAtLeast('dailyEnergyWh', dailyEnergyWh, 0);
+  assertAtLeast('peakPowerW', peakPowerW, 0);
   assertAtLeast('safetyFactor', safetyFactor, 1);
-  return normalize(dailyEnergyWh * safetyFactor);
+  return normalize(peakPowerW * safetyFactor);
 }
 
 /** Step C. */
 export function sizeInverter(
-  dailyEnergyWh: number,
+  peakPowerW: number,
   safetyFactor: number = DEFAULTS.inverterSafetyFactor,
 ): InverterSizing {
-  return { safetyFactor, ratingW: calculateInverterRatingW(dailyEnergyWh, safetyFactor) };
+  return { safetyFactor, ratingW: calculateInverterRatingW(peakPowerW, safetyFactor) };
 }
 
 // ─── D. PV array ─────────────────────────────────────────────────────────────
@@ -571,21 +570,6 @@ function validateLoadProfile(out: IssueCollector, appliances: readonly Appliance
     }
   });
 
-  // The inverter is sized on E_T, so loads running together can exceed it
-  // (e.g. a 2 000 W pump used 10 minutes a day).
-  const factor = system.inverterSafetyFactor;
-  if (isFiniteNumber(factor) && factor >= 1) {
-    const inverterW = calculateInverterRatingW(dailyEnergyWh, factor);
-    if (peakPowerW > inverterW) {
-      out.add(
-        'warning',
-        'PEAK_EXCEEDS_INVERTER',
-        { field: 'system.inverterSafetyFactor' },
-        t.peakExceedsInverter(formatValue(peakPowerW, 'W'), formatValue(inverterW, 'W')),
-      );
-    }
-  }
-
   const override = system.systemVoltageOverride ?? null;
   if (override !== null && isSystemVoltage(override)) {
     const recommended = recommendSystemVoltage(peakPowerW);
@@ -649,7 +633,7 @@ export function calculateSizing(input: SizingInput, locale: Locale = 'fr'): Sizi
     results: {
       load,
       systemVoltage,
-      inverter: sizeInverter(load.dailyEnergyWh, system.inverterSafetyFactor),
+      inverter: sizeInverter(load.peakPowerW, system.inverterSafetyFactor),
       pvArray: sizePvArray({
         dailyEnergyWh: load.dailyEnergyWh,
         peakSunHours: system.peakSunHours,

@@ -40,7 +40,6 @@ export interface MessageCatalog {
   noEnergy: string;
   noSimultaneous: string;
   excludedLoad: (row: string, totalPower: string, peak: string) => string;
-  peakExceedsInverter: (peak: string, inverter: string) => string;
   voltageBelow: (override: number, recommended: number, peak: string, amps: string) => string;
   /** Last pass over every message (French typography needs no-break spaces). */
   finalize: (text: string) => string;
@@ -104,11 +103,8 @@ const fr: MessageCatalog = {
   noSimultaneous: 'Puissance de pointe nulle (0 W) : cochez « Simultané » pour au moins une charge.',
   excludedLoad: (row, totalPower, peak) =>
     `${row} (${totalPower}) ne fait pas partie des charges simultanées, mais sa puissance dépasse à elle seule ` +
-    `la pointe calculée (${peak}). La pointe, qui fixe la tension du système, est sous-estimée : cochez « Simultané » ` +
+    `la pointe calculée (${peak}). L'onduleur serait sous-dimensionné à chaque utilisation : cochez « Simultané » ` +
     'ou revoyez le planning des charges.',
-  peakExceedsInverter: (peak, inverter) =>
-    `La puissance de pointe (${peak}) dépasse la puissance onduleur calculée (${inverter}) : l'onduleur ne pourrait ` +
-    "pas alimenter toutes les charges simultanées. Choisissez un onduleur d'au moins la puissance de pointe.",
   voltageBelow: (override, recommended, peak, amps) =>
     `Tension forcée à ${override} V, en dessous des ${recommended} V recommandés pour une pointe de ${peak}. ` +
     `Prévoyez environ ${amps} sur le bus continu en pointe : vérifiez la section des câbles et les protections.`,
@@ -163,10 +159,7 @@ const ar: MessageCatalog = {
   noSimultaneous: 'قدرة الذروة صفر (0 W): فعّل «متزامن» لحمل واحد على الأقل.',
   excludedLoad: (row, totalPower, peak) =>
     `${row} (${totalPower}) غير محسوب ضمن الأحمال المتزامنة لكن قدرته وحدها تتجاوز الذروة المحسوبة (${peak}). ` +
-    'الذروة التي تحدد جهد النظام أقل من الواقع: فعّل «متزامن» أو راجع جدول التشغيل.',
-  peakExceedsInverter: (peak, inverter) =>
-    `قدرة الذروة (${peak}) تتجاوز قدرة العاكس المحسوبة (${inverter}): لن يستطيع العاكس تشغيل كل الأحمال المتزامنة. ` +
-    'اختر عاكساً لا تقل قدرته عن قدرة الذروة.',
+    'سيكون العاكس أصغر من اللازم عند كل تشغيل: فعّل «متزامن» أو راجع جدول التشغيل.',
   voltageBelow: (override, recommended, peak, amps) =>
     `الجهد مفروض على ${override} V، أقل من ${recommended} V الموصى بها لذروة ${peak}. ` +
     `توقّع حوالي ${amps} على ناقل التيار المستمر في الذروة: تحقق من مقاطع الكابلات والحمايات.`,

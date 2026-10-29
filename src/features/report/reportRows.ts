@@ -33,7 +33,7 @@ export function detailRows(results: SizingResults, { t }: I18n): ReportRow[] {
     {
       label: t('report.inverterPower'),
       value: `${formatUp(inverter.ratingW)} W`,
-      formula: `P_inv = E_T × ${formatNumber(inverter.safetyFactor, 2)}`,
+      formula: `P_inv = P_peak × ${formatNumber(inverter.safetyFactor, 2)}`,
     },
     {
       label: t('report.pvPower'),
