@@ -68,7 +68,7 @@ const fr = {
   'battery.efficiency': 'Rendement batterie (η)',
 
   'inverter.factor': 'Coefficient de sécurité onduleur',
-  'inverter.factorHint': 'Onduleur = somme de la colonne Puissance (W) × 1,3.',
+  'inverter.factorHint': 'Onduleur = Σ (quantité × puissance) × 1,3.',
   'inverter.voltage': 'Tension du système',
   'inverter.auto': 'Auto',
   'inverter.rule': 'Règle auto : moins de {a} W → 12 V, jusqu’à {b} W → 24 V, au-delà → 48 V.',
@@ -211,7 +211,7 @@ const ar: Record<StringKey, string> = {
   'battery.efficiency': 'كفاءة البطارية (η)',
 
   'inverter.factor': 'معامل أمان العاكس',
-  'inverter.factorHint': 'العاكس = مجموع عمود القدرة ⁨(W)⁩ × ⁨1,3⁩.',
+  'inverter.factorHint': 'العاكس = مجموع (الكمية × القدرة) × ⁨1,3⁩.',
   'inverter.voltage': 'جهد النظام',
   'inverter.auto': 'تلقائي',
   'inverter.rule': 'القاعدة: أقل من ⁨{a} W⁩ ← ⁨12 V⁩، حتى ⁨{b} W⁩ ← ⁨24 V⁩، أكثر ← ⁨48 V⁩.',

@@ -12,7 +12,7 @@ bilan des charges, tension du système, onduleur, champ PV et parc de batteries.
 | Énergie journalière | E<sub>T</sub> = Σ (qté × P × h) |
 | Puissance de pointe | P<sub>peak</sub> = Σ (qté × P) des charges simultanées |
 | Tension du système | moins de 1 000 W → 12 V ; 1 000 à 2 000 W → 24 V ; plus de 2 000 W → 48 V (forçage possible) |
-| Onduleur | P<sub>inv</sub> = ΣP × 1,3 (somme de la colonne Puissance, sans les quantités) |
+| Onduleur | P<sub>inv</sub> = Σ (qté × P) × 1,3, pour tous les appareils (simultanés ou non) |
 | Champ PV | W<sub>PV</sub> = E<sub>T</sub> / (DF × PSH) ; N<sub>P</sub> = ⌈W<sub>PV</sub> / P<sub>panneau</sub>⌉ |
 | Batteries | C<sub>Ah</sub> = E<sub>T</sub> × N<sub>j</sub> / (η × DoD × V<sub>syst</sub>) |
 

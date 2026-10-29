@@ -3,7 +3,7 @@
  *
  *   Appliances ─► A. Load analysis   Eᵢ = n·P·h,  E_T = ΣEᵢ,  P_peak = Σ n·P (simultaneous loads)
  *              ─► B. System voltage  12 V (< 1 kW) · 24 V (1–2 kW) · 48 V (> 2 kW), overridable
- *              ─► C. Inverter        P_inv = ΣPᵢ × 1.3 (power column summed, quantities not counted)
+ *              ─► C. Inverter        P_inv = Σ nᵢ·Pᵢ × 1.3 (every load, simultaneous or not)
  *              ─► D. PV array        W_PV = E_T / (DF × PSH),  N_P = ⌈W_PV / P_module⌉
  *              ─► E. Battery bank    C_Ah = E_T × N_j / (η × DoD × V_syst)
  *
@@ -156,14 +156,9 @@ export function calculatePeakPowerW(
   );
 }
 
-/** Sum of the power column: ΣPᵢ over every load, quantities not counted (W). */
-export function calculatePowerSumW(appliances: readonly Pick<Appliance, 'powerW'>[]): number {
-  return normalize(
-    appliances.reduce((sum, appliance) => {
-      assertAtLeast('powerW', appliance.powerW, 0);
-      return sum + appliance.powerW;
-    }, 0),
-  );
+/** Connected power: Σ nᵢ × Pᵢ over every load, simultaneous or not (W). */
+export function calculatePowerSumW(appliances: readonly Pick<Appliance, 'quantity' | 'powerW'>[]): number {
+  return normalize(appliances.reduce((sum, appliance) => sum + calculateApplianceTotalPowerW(appliance), 0));
 }
 
 /** E_T2 = E_T / 1000: converts Wh to kWh. */
@@ -173,7 +168,7 @@ export function whToKWh(energyWh: number): number {
 }
 
 /**
- * Step A for the whole table: per-row breakdown, E_T, E_T2, P_peak and ΣPᵢ.
+ * Step A for the whole table: per-row breakdown, E_T, E_T2, P_peak and Σ nᵢ·Pᵢ.
  * @throws SolarEngineError if a row holds an out-of-domain value.
  */
 export function analyzeLoads(appliances: readonly Appliance[]): LoadAnalysis {
@@ -237,10 +232,10 @@ export function selectSystemVoltage(
 // ─── C. Inverter ─────────────────────────────────────────────────────────────
 
 /**
- * Inverter nominal rating: P_inv = ΣPᵢ × safety factor (W), where ΣPᵢ is the sum
- * of the power column (quantities not counted). The default 1.3 adds a 30 % margin.
+ * Inverter nominal rating: P_inv = Σ nᵢ·Pᵢ × safety factor (W), the connected power
+ * of every load (simultaneous or not). The default 1.3 adds a 30 % margin.
  * @throws SolarEngineError if safetyFactor < 1.
- * @example calculateInverterRatingW(1125) // 1462.5
+ * @example calculateInverterRatingW(1345) // 1748.5
  */
 export function calculateInverterRatingW(
   powerSumW: number,

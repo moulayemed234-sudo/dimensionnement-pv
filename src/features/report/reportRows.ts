@@ -25,7 +25,7 @@ export function detailRows(results: SizingResults, { t }: I18n): ReportRow[] {
       formula: 'E_T = Σ n · P · h',
     },
     { label: t('report.peak'), value: `${formatUp(load.peakPowerW)} W`, formula: 'P_peak = Σ n · P' },
-    { label: t('report.powerSum'), value: `${formatUp(load.powerSumW)} W`, formula: 'ΣP' },
+    { label: t('report.powerSum'), value: `${formatUp(load.powerSumW)} W`, formula: 'Σ n · P' },
     {
       label: t('report.systemVoltage'),
       value: `${v} V`,
@@ -34,7 +34,7 @@ export function detailRows(results: SizingResults, { t }: I18n): ReportRow[] {
     {
       label: t('report.inverterPower'),
       value: `${formatUp(inverter.ratingW)} W`,
-      formula: `P_inv = ΣP × ${formatNumber(inverter.safetyFactor, 2)}`,
+      formula: `P_inv = Σ n · P × ${formatNumber(inverter.safetyFactor, 2)}`,
     },
     {
       label: t('report.pvPower'),
