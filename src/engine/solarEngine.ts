@@ -3,7 +3,7 @@
  *
  *   Appliances ─► A. Load analysis   Eᵢ = n·P·h,  E_T = ΣEᵢ,  P_peak = Σ n·P (simultaneous loads)
  *              ─► B. System voltage  12 V (< 1 kW) · 24 V (1–2 kW) · 48 V (> 2 kW), overridable
- *              ─► C. Inverter        P_inv = P_peak × 1.3
+ *              ─► C. Inverter        P_inv = ΣPᵢ × 1.3 (power column summed, quantities not counted)
  *              ─► D. PV array        W_PV = E_T / (DF × PSH),  N_P = ⌈W_PV / P_module⌉
  *              ─► E. Battery bank    C_Ah = E_T × N_j / (η × DoD × V_syst)
  *
@@ -156,6 +156,16 @@ export function calculatePeakPowerW(
   );
 }
 
+/** Sum of the power column: ΣPᵢ over every load, quantities not counted (W). */
+export function calculatePowerSumW(appliances: readonly Pick<Appliance, 'powerW'>[]): number {
+  return normalize(
+    appliances.reduce((sum, appliance) => {
+      assertAtLeast('powerW', appliance.powerW, 0);
+      return sum + appliance.powerW;
+    }, 0),
+  );
+}
+
 /** E_T2 = E_T / 1000: converts Wh to kWh. */
 export function whToKWh(energyWh: number): number {
   assertFinite('energyWh', energyWh);
@@ -163,7 +173,7 @@ export function whToKWh(energyWh: number): number {
 }
 
 /**
- * Step A for the whole table: per-row breakdown, E_T, E_T2 and P_peak.
+ * Step A for the whole table: per-row breakdown, E_T, E_T2, P_peak and ΣPᵢ.
  * @throws SolarEngineError if a row holds an out-of-domain value.
  */
 export function analyzeLoads(appliances: readonly Appliance[]): LoadAnalysis {
@@ -183,6 +193,7 @@ export function analyzeLoads(appliances: readonly Appliance[]): LoadAnalysis {
     dailyEnergyWh,
     dailyEnergyKWh: whToKWh(dailyEnergyWh),
     peakPowerW: calculatePeakPowerW(appliances),
+    powerSumW: calculatePowerSumW(appliances),
   };
 }
 
@@ -226,26 +237,26 @@ export function selectSystemVoltage(
 // ─── C. Inverter ─────────────────────────────────────────────────────────────
 
 /**
- * Inverter nominal rating: P_inv = P_peak × safety factor (W). The default 1.3
- * adds the standard 30 % surge/safety margin.
- * @throws SolarEngineError if safetyFactor < 1: an inverter below the peak load is never acceptable.
- * @example calculateInverterRatingW(2080) // 2704
+ * Inverter nominal rating: P_inv = ΣPᵢ × safety factor (W), where ΣPᵢ is the sum
+ * of the power column (quantities not counted). The default 1.3 adds a 30 % margin.
+ * @throws SolarEngineError if safetyFactor < 1.
+ * @example calculateInverterRatingW(1125) // 1462.5
  */
 export function calculateInverterRatingW(
-  peakPowerW: number,
+  powerSumW: number,
   safetyFactor: number = DEFAULTS.inverterSafetyFactor,
 ): number {
-  assertAtLeast('peakPowerW', peakPowerW, 0);
+  assertAtLeast('powerSumW', powerSumW, 0);
   assertAtLeast('safetyFactor', safetyFactor, 1);
-  return normalize(peakPowerW * safetyFactor);
+  return normalize(powerSumW * safetyFactor);
 }
 
 /** Step C. */
 export function sizeInverter(
-  peakPowerW: number,
+  powerSumW: number,
   safetyFactor: number = DEFAULTS.inverterSafetyFactor,
 ): InverterSizing {
-  return { safetyFactor, ratingW: calculateInverterRatingW(peakPowerW, safetyFactor) };
+  return { safetyFactor, ratingW: calculateInverterRatingW(powerSumW, safetyFactor) };
 }
 
 // ─── D. PV array ─────────────────────────────────────────────────────────────
@@ -633,7 +644,7 @@ export function calculateSizing(input: SizingInput, locale: Locale = 'fr'): Sizi
     results: {
       load,
       systemVoltage,
-      inverter: sizeInverter(load.peakPowerW, system.inverterSafetyFactor),
+      inverter: sizeInverter(load.powerSumW, system.inverterSafetyFactor),
       pvArray: sizePvArray({
         dailyEnergyWh: load.dailyEnergyWh,
         peakSunHours: system.peakSunHours,

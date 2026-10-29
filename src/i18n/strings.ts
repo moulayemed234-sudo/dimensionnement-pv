@@ -68,7 +68,7 @@ const fr = {
   'battery.efficiency': 'Rendement batterie (η)',
 
   'inverter.factor': 'Coefficient de sécurité onduleur',
-  'inverter.factorHint': 'P_inv = P_peak × 1,3 (marge de 30 %).',
+  'inverter.factorHint': 'Onduleur = somme de la colonne Puissance (W) × 1,3.',
   'inverter.voltage': 'Tension du système',
   'inverter.auto': 'Auto',
   'inverter.rule': 'Règle auto : moins de {a} W → 12 V, jusqu’à {b} W → 24 V, au-delà → 48 V.',
@@ -87,7 +87,7 @@ const fr = {
   'summary.pv': 'Panneaux solaires',
   'summary.battery': 'Batteries',
   'summary.inverter': 'Onduleur',
-  'summary.inverterSub': 'Puissance de pointe × {f}',
+  'summary.inverterSub': 'Somme des puissances × {f}',
   'summary.voltage': 'Tension du système',
 
   'report.tab.assumptions': 'Hypothèses et formules',
@@ -100,6 +100,7 @@ const fr = {
   'report.formula': 'Formule',
   'report.panelCount': 'Nombre de panneaux',
   'report.peak': 'Puissance de pointe',
+  'report.powerSum': 'Somme des puissances',
   'report.notesTitle': "Notes d'ingénierie",
   'report.note.psh': "Le système est calculé à partir de l'ensoleillement du site ({psh} h/j).",
   'report.note.mppt': 'Un régulateur de charge MPPT est recommandé pour un meilleur rendement.',
@@ -210,7 +211,7 @@ const ar: Record<StringKey, string> = {
   'battery.efficiency': 'كفاءة البطارية (η)',
 
   'inverter.factor': 'معامل أمان العاكس',
-  'inverter.factorHint': '⁨P_inv = P_peak × 1,3⁩ (هامش ⁨30 %⁩).',
+  'inverter.factorHint': 'العاكس = مجموع عمود القدرة ⁨(W)⁩ × ⁨1,3⁩.',
   'inverter.voltage': 'جهد النظام',
   'inverter.auto': 'تلقائي',
   'inverter.rule': 'القاعدة: أقل من ⁨{a} W⁩ ← ⁨12 V⁩، حتى ⁨{b} W⁩ ← ⁨24 V⁩، أكثر ← ⁨48 V⁩.',
@@ -229,7 +230,7 @@ const ar: Record<StringKey, string> = {
   'summary.pv': 'الألواح الشمسية',
   'summary.battery': 'البطاريات',
   'summary.inverter': 'العاكس',
-  'summary.inverterSub': 'قدرة الذروة × ⁨{f}⁩',
+  'summary.inverterSub': 'مجموع القدرات × ⁨{f}⁩',
   'summary.voltage': 'جهد النظام',
 
   'report.tab.assumptions': 'الافتراضات والمعادلات',
@@ -242,6 +243,7 @@ const ar: Record<StringKey, string> = {
   'report.formula': 'المعادلة',
   'report.panelCount': 'عدد الألواح',
   'report.peak': 'قدرة الذروة',
+  'report.powerSum': 'مجموع القدرات',
   'report.notesTitle': 'ملاحظات هندسية',
   'report.note.psh': 'تم حساب النظام بناءً على متوسط الإشعاع الشمسي للموقع ({psh} ساعة/يوم).',
   'report.note.mppt': 'يوصى باستخدام منظم شحن MPPT لأعلى كفاءة.',

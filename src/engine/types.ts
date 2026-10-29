@@ -79,7 +79,7 @@ export interface SystemParameters {
   deratingFactor: number;
   /** STC rating of one PV module, in watts (e.g. 630). */
   panelPowerW: number;
-  /** Inverter margin over P_peak; default 1.3 (+30 % surge/safety margin). */
+  /** Inverter margin over ΣPᵢ; default 1.3 (+30 %). */
   inverterSafetyFactor: number;
   /** Forces V_syst; `null` applies the automatic peak-power rule. */
   systemVoltageOverride: SystemVoltage | null;
@@ -116,6 +116,8 @@ export interface LoadAnalysis {
   dailyEnergyKWh: number;
   /** P_peak: sum of the simultaneous loads (W). */
   peakPowerW: number;
+  /** ΣPᵢ: sum of the power column, quantities not counted (W). Sizes the inverter. */
+  powerSumW: number;
 }
 
 /** B. DC bus voltage decision. */
@@ -130,7 +132,7 @@ export interface SystemVoltageSelection {
 /** C. Inverter. */
 export interface InverterSizing {
   safetyFactor: number;
-  /** P_inv = P_peak × safetyFactor (W). */
+  /** P_inv = ΣPᵢ × safetyFactor (W). */
   ratingW: number;
 }
 
