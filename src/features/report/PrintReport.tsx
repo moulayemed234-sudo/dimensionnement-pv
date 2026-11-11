@@ -5,7 +5,7 @@ import type { SizingOutcome } from '../../engine/types';
 import { useProjectStore } from '../../state/projectStore';
 import { formatNumber } from '../../ui/numbers';
 import { BrandMark } from '../layout/TopBar';
-import { assumptionRows, detailRows, engineeringNotes } from './reportRows';
+import { summaryRows } from './reportRows';
 
 /** The paper / PDF report. Hidden on screen; the only thing printed. */
 export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
@@ -14,10 +14,8 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
   const info = useProjectStore((state) => state.info);
   const locationId = useProjectStore((state) => state.locationId);
   const input = useProjectStore((state) => state.input);
-  const project = { info, locationId, input };
   const location = findLocation(locationId);
   const date = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'fr-FR', { dateStyle: 'long' }).format(new Date());
-  const warnings = outcome.issues.filter((issue) => issue.severity === 'warning');
   const loads = outcome.ok ? outcome.results.load.appliances : [];
 
   return (
@@ -44,21 +42,11 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
         <section>
           <h2>{t('print.results')}</h2>
           <table>
-            <thead>
-              <tr>
-                <th>{t('report.item')}</th>
-                <th>{t('report.value')}</th>
-                <th>{t('report.formula')}</th>
-              </tr>
-            </thead>
             <tbody>
-              {detailRows(outcome.results, i18n).map((row) => (
+              {summaryRows(outcome.results, i18n).map((row) => (
                 <tr key={row.label}>
                   <th scope="row">{row.label}</th>
-                  <td className="num">{row.value}</td>
-                  <td className="formula" dir="ltr">
-                    {row.formula}
-                  </td>
+                  <td className="num"><span dir="ltr">{row.value}</span></td>
                 </tr>
               ))}
             </tbody>
@@ -88,7 +76,6 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
                 <th>{t('col.qty')}</th>
                 <th>{t('col.power')}</th>
                 <th>{t('col.hours')}</th>
-                <th>{t('col.simultaneous')}</th>
                 <th>{t('col.energy')}</th>
               </tr>
             </thead>
@@ -102,7 +89,6 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
                     <td className="num">{appliance ? formatNumber(appliance.quantity) : '—'}</td>
                     <td className="num">{appliance ? formatNumber(appliance.powerW, 1) : '—'}</td>
                     <td className="num">{appliance ? formatNumber(appliance.hoursPerDay, 2) : '—'}</td>
-                    <td>{load.isSimultaneous ? t('print.yes') : t('print.no')}</td>
                     <td className="num">{formatNumber(load.dailyEnergyWh, 1)}</td>
                   </tr>
                 );
@@ -111,40 +97,6 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
           </table>
         </section>
       ) : null}
-
-      <section>
-        <h2>{t('report.tab.assumptions')}</h2>
-        <table>
-          <tbody>
-            {assumptionRows(project, i18n).map((row) => (
-              <tr key={row.label}>
-                <th scope="row">{row.label}</th>
-                <td className="num">{row.value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      {warnings.length > 0 ? (
-        <section>
-          <h2>{t('print.warnings')}</h2>
-          <ul>
-            {warnings.map((warning) => (
-              <li key={warning.message}>{text(warning.message)}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      <section>
-        <h2>{t('report.notesTitle')}</h2>
-        <ul>
-          {engineeringNotes(project, i18n).map((note) => (
-            <li key={note}>{text(note)}</li>
-          ))}
-        </ul>
-      </section>
 
       <p className="print-report__footer">
         {t('brand.name')} · {t('brand.footer')} · {t('print.footer')}
