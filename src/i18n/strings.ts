@@ -69,6 +69,7 @@ const fr = {
   'battery.dod': 'Profondeur de décharge (DoD)',
   'battery.dodHint': 'Entre {min} et {max} ; 0,8 = 80 %.',
   'battery.days': "Jours d'autonomie (Nj)",
+  'battery.daysHint': "1 = la batterie couvre une nuit (usage normal). Plus de 1 seulement pour une réserve en cas de tempête de sable.",
   'battery.efficiency': 'Rendement batterie (η)',
 
   'inverter.factor': 'Coefficient de sécurité onduleur',
@@ -101,6 +102,7 @@ const fr = {
   'deye.best': 'Meilleur choix',
   'deye.over': 'Plus de 32 en parallèle',
   'deye.power': "Minimum pour la puissance de l'onduleur",
+  'deye.days': "Jours d'autonomie : {n} (réglages avancés)",
   'deye.night': 'Consommation sur batterie : {kwh} kWh/j',
   'report.batteryDaily': 'Consommation sur batterie (sans soleil)',
   'deye.sub': 'Total : {total} kWh',
@@ -231,6 +233,7 @@ const ar: Record<StringKey, string> = {
   'battery.dod': 'عمق التفريغ (DoD)',
   'battery.dodHint': 'بين ⁨{min}⁩ و ⁨{max}⁩ — مثلاً ⁨0,8 = 80 %⁩.',
   'battery.days': 'أيام الاستقلالية (Nj)',
+  'battery.daysHint': '⁨1⁩ = البطارية تغطي ليلة واحدة (الاستعمال العادي). أكثر من ⁨1⁩ فقط للاحتياط في حالة العواصف الرملية.',
   'battery.efficiency': 'كفاءة البطارية (η)',
 
   'inverter.factor': 'معامل أمان العاكس',
@@ -263,6 +266,7 @@ const ar: Record<StringKey, string> = {
   'deye.best': 'الخيار الأفضل',
   'deye.over': 'أكثر من 32 على التوازي',
   'deye.power': 'الحد الأدنى لقدرة العاكس',
+  'deye.days': 'أيام الاستقلالية: ⁨{n}⁩ (الإعدادات المتقدمة)',
   'deye.night': 'الاستهلاك على البطارية: ⁨{kwh} kWh/day⁩',
   'report.batteryDaily': 'الاستهلاك على البطارية (بدون شمس)',
   'deye.sub': 'المجموع: ⁨{total} kWh⁩',

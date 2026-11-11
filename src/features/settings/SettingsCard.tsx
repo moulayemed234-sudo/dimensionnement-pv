@@ -17,7 +17,12 @@ import { formatNumber, formatPercent } from '../../ui/numbers';
 const CUSTOM_PSH = 'custom';
 const DERATING_PRESETS = [0.9, 0.8, 0.7];
 const CHEMISTRIES = Object.keys(CHEMISTRY_LABELS.fr) as BatteryChemistry[];
-const ADVANCED_FIELDS: readonly IssueField[] = ['system.deratingFactor', 'battery.efficiency', 'system.inverterSafetyFactor'];
+const ADVANCED_FIELDS: readonly IssueField[] = [
+  'system.deratingFactor',
+  'battery.efficiency',
+  'battery.daysOfAutonomy',
+  'system.inverterSafetyFactor',
+];
 
 interface SettingsCardProps {
   issues: readonly ValidationIssue[];
@@ -41,7 +46,8 @@ export function SettingsCard({ issues, recommendedVoltage }: SettingsCardProps) 
   const customDod = NUMERIC_RULES.customDepthOfDischarge;
   const voltage = system.systemVoltageOverride;
   // A problem in a hidden field opens the advanced section so it can be seen.
-  const advancedHasIssue = ADVANCED_FIELDS.some((field) => at(field).length > 0);
+  // So is a reserve other than one night, so a hidden value never inflates the battery unseen.
+  const advancedHasIssue = ADVANCED_FIELDS.some((field) => at(field).length > 0) || battery.daysOfAutonomy !== 1;
 
   const changeChemistry = (chemistry: BatteryChemistry) => {
     // Switching to custom starts from the DoD of the technology being left.
@@ -127,13 +133,6 @@ export function SettingsCard({ issues, recommendedVoltage }: SettingsCardProps) 
             onChange={(customDepthOfDischarge) => setBattery({ customDepthOfDischarge })}
           />
         ) : null}
-        <NumberField
-          label={t('battery.days')}
-          unit={t('unit.days')}
-          value={battery.daysOfAutonomy}
-          issues={at('battery.daysOfAutonomy')}
-          onChange={(daysOfAutonomy) => setBattery({ daysOfAutonomy })}
-        />
         <div className="field">
           <span className="field__label" id="voltage-label">
             {t('inverter.voltage')}
@@ -210,6 +209,14 @@ export function SettingsCard({ issues, recommendedVoltage }: SettingsCardProps) 
             hint={Number.isFinite(battery.efficiency) ? `= ${formatPercent(battery.efficiency)}` : undefined}
             issues={at('battery.efficiency')}
             onChange={(efficiency) => setBattery({ efficiency })}
+          />
+          <NumberField
+            label={t('battery.days')}
+            unit={t('unit.days')}
+            value={battery.daysOfAutonomy}
+            hint={t('battery.daysHint')}
+            issues={at('battery.daysOfAutonomy')}
+            onChange={(daysOfAutonomy) => setBattery({ daysOfAutonomy })}
           />
           <NumberField
             label={t('inverter.factor')}

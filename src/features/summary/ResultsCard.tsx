@@ -115,6 +115,12 @@ function DeyeOptions({ results }: { results: SizingResults }) {
           {text(t('deye.night', { kwh: formatUp(load.batteryEnergyWh / 1000, 2) }))}
           <br />
           {text(t('deye.need', { kwh: formatUp(battery.nominalEnergyWh / 1000, 2) }))}
+          {battery.daysOfAutonomy !== 1 ? (
+            <>
+              <br />
+              <strong>{text(t('deye.days', { n: formatNumber(battery.daysOfAutonomy, 2) }))}</strong>
+            </>
+          ) : null}
         </p>
       </div>
       <table className="deye__table">
