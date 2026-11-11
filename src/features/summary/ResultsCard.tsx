@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Icon, type IconName } from '../../components/Icon';
 import { IssueList } from '../../components/IssueList';
 import { SoftText } from '../../components/SoftText';
-import { deyeOptions } from '../../data/deyeBatteries';
+import { batterySizeLabel, deyeOptions } from '../../data/deyeBatteries';
 import type { SizingOutcome, SizingResults } from '../../engine/types';
 import { useI18n } from '../../i18n/useI18n';
 import { downloadProject } from '../../services/projectFile';
@@ -72,21 +72,19 @@ function ResultList({ outcome }: { outcome: Extract<SizingOutcome, { ok: true }>
         icon="panel"
         label={t('summary.pv')}
         value={`${pvArray.panelCount} × ${formatNumber(pvArray.panelPowerW)} W`}
-        sub={t('results.installedKw', { kw: formatNumber(pvArray.installedPowerW / 1000, 2) })}
       />
       <ResultRow
         tone="green"
         icon="battery"
         label={t('summary.battery')}
-        value={`${deye.count} × ${deye.battery.model}`}
-        sub={t('deye.sub', { total: formatNumber(deye.installedWh / 1000, 2) })}
+        value={`${deye.count} × ${batterySizeLabel(deye.battery)}`}
+        sub={deye.count > 1 ? t('deye.sub', { total: formatNumber(deye.installedWh / 1000, 2) }) : undefined}
       />
       <ResultRow
         tone="teal"
         icon="inverter"
         label={t('summary.inverter')}
         value={`${formatUp(inverter.ratingW)} W`}
-        sub={t('summary.inverterSub', { f: formatNumber(inverter.safetyFactor, 2) })}
       />
       <ResultRow
         tone="blue"
@@ -131,10 +129,7 @@ function DeyeOptions({ results }: { results: SizingResults }) {
           {options.map((option) => (
             <tr key={option.battery.id} className={option.best ? 'deye__row deye__row--best' : 'deye__row'}>
               <th scope="row">
-                <span className="deye__model" dir="ltr">{option.battery.model}</span>
-                <span className="deye__spec num" dir="ltr">
-                  {formatNumber(option.battery.energyWh / 1000, 2)} kWh
-                </span>
+                <span className="deye__model num" dir="ltr">{batterySizeLabel(option.battery)}</span>
               </th>
               <td className="num deye__qty">{option.count}</td>
               <td className="num">
@@ -158,7 +153,7 @@ interface ResultRowProps {
   icon: IconName;
   label: string;
   value: string;
-  sub: ReactNode;
+  sub?: ReactNode;
 }
 
 function ResultRow({ tone, icon, label, value, sub }: ResultRowProps) {
@@ -170,7 +165,7 @@ function ResultRow({ tone, icon, label, value, sub }: ResultRowProps) {
       </span>
       <div>
         <h3 className="result-row__label">{label}</h3>
-        <p className="result-row__sub">{typeof sub === 'string' ? text(sub) : sub}</p>
+        {sub ? <p className="result-row__sub">{typeof sub === 'string' ? text(sub) : sub}</p> : null}
       </div>
       <p className="result-row__value num">
         <SoftText text={value} />

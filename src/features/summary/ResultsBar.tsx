@@ -1,5 +1,5 @@
 import { SoftText } from '../../components/SoftText';
-import { deyeOptions } from '../../data/deyeBatteries';
+import { batterySizeLabel, deyeOptions } from '../../data/deyeBatteries';
 import type { SizingOutcome } from '../../engine/types';
 import { useI18n } from '../../i18n/useI18n';
 import { formatNumber, formatUp } from '../../ui/numbers';
@@ -36,8 +36,8 @@ export function ResultsBar({ outcome }: { outcome: SizingOutcome }) {
   );
 }
 
-/** "2 × SE-F12": the best-fitting Deye module count. */
+/** "2 × 11,8 kWh": the best-fitting Deye battery count. */
 function deyeBest(requiredWh: number, inverterW: number): string {
   const best = deyeOptions(requiredWh, inverterW).find((option) => option.best)!;
-  return `${best.count} × ${best.battery.model}`;
+  return `${best.count} × ${batterySizeLabel(best.battery)}`;
 }

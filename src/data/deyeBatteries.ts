@@ -44,6 +44,11 @@ export interface DeyeOption {
   overLimit: boolean;
 }
 
+/** "5,12 kWh": how the battery is named on screen and in the report. */
+export function batterySizeLabel(battery: DeyeBattery): string {
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 2 }).format(battery.energyWh / 1000)} kWh`;
+}
+
 const ceil = (value: number) => Math.ceil(Number(value.toPrecision(12)));
 
 /**
