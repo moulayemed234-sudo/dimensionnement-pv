@@ -5,7 +5,7 @@ import { useI18n } from '../../i18n/useI18n';
 import type { SizingOutcome } from '../../engine/types';
 import { useProjectStore } from '../../state/projectStore';
 import { formatNumber } from '../../ui/numbers';
-import { BrandMark } from '../layout/TopBar';
+import letterhead from '../../assets/letterhead.jpg';
 import { summaryRows } from './reportRows';
 
 /** The paper / PDF report. Hidden on screen; the only thing printed. */
@@ -21,10 +21,31 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
 
   return (
     <div className="print-report" aria-hidden="true">
+      {/* Company letterhead (SHEMS AL WATAN): a fixed element, so it prints behind every page. */}
+      <img className="print-report__letterhead" src={letterhead} alt="" />
+      {/* Browsers repeat a table's thead/tfoot on every printed page: the empty rows keep the
+          content clear of the letterhead's header and footer band on each page. */}
+      <table className="print-report__page">
+        <thead>
+          <tr>
+            <td>
+              <div className="print-report__space-top" />
+            </td>
+          </tr>
+        </thead>
+        <tfoot>
+          <tr>
+            <td>
+              <div className="print-report__space-bottom" />
+            </td>
+          </tr>
+        </tfoot>
+        <tbody>
+          <tr>
+            <td>
+              <div className="print-report__body">
       <header className="print-report__head">
-        <BrandMark size={52} />
         <div>
-          <p className="print-report__brand">{t('brand.name')}</p>
           <h1>{t('print.title')}</h1>
           <p className="print-report__meta">
             {text(
@@ -67,7 +88,7 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
       )}
 
       {loads.length > 0 ? (
-        <section>
+        <section className="print-report__loads">
           <h2>{t('print.loads')}</h2>
           <table>
             <thead>
@@ -102,8 +123,13 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
       ) : null}
 
       <p className="print-report__footer">
-        {t('brand.name')} · {t('brand.footer')} · {t('print.footer')}
+        {t('print.footer')}
       </p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   );
 }

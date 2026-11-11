@@ -1541,9 +1541,14 @@ input[type='checkbox'] {
   display: none;
 }
 
+/* No page margin: the letterhead covers the whole sheet; spacing comes from the report itself. */
 @page {
   size: A4;
-  margin: 14mm;
+  margin: 0;
+}
+
+.print-report__letterhead {
+  display: none;
 }
 
 @media print {
@@ -1569,16 +1574,58 @@ input[type='checkbox'] {
   }
 
   .print-report {
+    display: block;
+  }
+
+  /* Fixed elements repeat on every printed page. */
+  .print-report__letterhead {
+    display: block;
+    position: fixed;
+    z-index: -1;
+    top: 0;
+    left: 0;
+    width: 210mm;
+    height: 297mm;
+    max-width: none;
+  }
+
+  .print-report table.print-report__page {
+    border-collapse: collapse;
+  }
+
+  .print-report .print-report__page > * > tr > td {
+    padding: 0 14mm;
+    border: 0;
+    background: none;
+  }
+
+  /* Letterhead header ≈ 38 mm, footer band ≈ 19 mm. */
+  .print-report__space-top {
+    height: 42mm;
+  }
+
+  .print-report__space-bottom {
+    height: 24mm;
+  }
+
+  .print-report__body {
     display: grid;
     gap: 12pt;
   }
 
+  .print-report thead th,
+  .print-report th[scope='row'] {
+    background: rgb(241 245 249 / 0.85);
+  }
+
+  .print-report td {
+    background: rgb(255 255 255 / 0.6);
+  }
+
   .print-report__head {
-    display: flex;
-    align-items: center;
-    gap: 12pt;
-    padding-bottom: 8pt;
-    border-bottom: 2pt solid #1d4e97;
+    padding-bottom: 6pt;
+    border-bottom: 1.5pt solid #1d4e97;
+    text-align: center;
   }
 
   .print-report__brand {
@@ -1625,6 +1672,15 @@ input[type='checkbox'] {
   }
 
   .print-report section {
+    break-inside: avoid;
+  }
+
+  /* A long load list may continue on the next page (its column headings repeat). */
+  .print-report section.print-report__loads {
+    break-inside: auto;
+  }
+
+  .print-report tr {
     break-inside: avoid;
   }
 }
