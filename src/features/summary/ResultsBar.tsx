@@ -1,4 +1,5 @@
 import { SoftText } from '../../components/SoftText';
+import { deyeOptions } from '../../data/deyeBatteries';
 import type { SizingOutcome } from '../../engine/types';
 import { useI18n } from '../../i18n/useI18n';
 import { formatNumber, formatUp } from '../../ui/numbers';
@@ -20,7 +21,7 @@ export function ResultsBar({ outcome }: { outcome: SizingOutcome }) {
             <SoftText text={String(outcome.results.pvArray.panelCount)} /> × {formatNumber(outcome.results.pvArray.panelPowerW)} W
           </span>
           <span className="num">
-            <SoftText text={formatUp(outcome.results.battery.capacityAh)} /> Ah · {outcome.results.systemVoltage.voltage} V
+            <SoftText text={deyeBest(outcome.results.battery.nominalEnergyWh)} />
           </span>
         </span>
       ) : (
@@ -33,4 +34,10 @@ export function ResultsBar({ outcome }: { outcome: SizingOutcome }) {
       ) : null}
     </a>
   );
+}
+
+/** "2 × SE-F12": the best-fitting Deye module count. */
+function deyeBest(requiredWh: number): string {
+  const best = deyeOptions(requiredWh).find((option) => option.best)!;
+  return `${best.count} × ${best.battery.model}`;
 }

@@ -2,11 +2,12 @@ import type { ReactNode } from 'react';
 import { Icon, type IconName } from '../../components/Icon';
 import { IssueList } from '../../components/IssueList';
 import { SoftText } from '../../components/SoftText';
-import type { SizingOutcome } from '../../engine/types';
+import { deyeOptions } from '../../data/deyeBatteries';
+import type { BatterySizing, SizingOutcome, SystemVoltage } from '../../engine/types';
 import { useI18n } from '../../i18n/useI18n';
 import { downloadProject } from '../../services/projectFile';
 import { snapshotProject } from '../../state/projectStore';
-import { formatNumber, formatPercent, formatUp } from '../../ui/numbers';
+import { formatNumber, formatUp } from '../../ui/numbers';
 
 /** The sizing answer: panels, batteries, inverter and voltage, then save / PDF. */
 export function ResultsCard({ outcome }: { outcome: SizingOutcome }) {
@@ -61,8 +62,10 @@ function ResultList({ outcome }: { outcome: Extract<SizingOutcome, { ok: true }>
   const { t } = useI18n();
   const { pvArray, battery, inverter, systemVoltage } = outcome.results;
   const v = systemVoltage.voltage;
+  const deye = deyeOptions(battery.nominalEnergyWh).find((option) => option.best)!;
 
   return (
+    <>
     <div className="result-list">
       <ResultRow
         tone="amber"
@@ -75,8 +78,8 @@ function ResultList({ outcome }: { outcome: Extract<SizingOutcome, { ok: true }>
         tone="green"
         icon="battery"
         label={t('summary.battery')}
-        value={`${formatUp(battery.capacityAh)} Ah`}
-        sub={<span className="num">{`${v} V · ${formatUp(battery.nominalEnergyWh / 1000, 2)} kWh · DoD ${formatPercent(battery.depthOfDischarge)}`}</span>}
+        value={`${deye.count} × ${deye.battery.model}`}
+        sub={t('deye.sub', { total: formatNumber(deye.installedWh / 1000, 2) })}
       />
       <ResultRow
         tone="teal"
@@ -92,6 +95,53 @@ function ResultList({ outcome }: { outcome: Extract<SizingOutcome, { ok: true }>
         value={`${v} V`}
         sub={systemVoltage.source === 'auto' ? t('results.voltageAuto') : t('results.voltageManual')}
       />
+    </div>
+    <DeyeOptions battery={battery} voltage={v} />
+    </>
+  );
+}
+
+/** Every Deye model with the number of modules it takes, the best fit highlighted. */
+function DeyeOptions({ battery, voltage }: { battery: BatterySizing; voltage: SystemVoltage }) {
+  const { t, text } = useI18n();
+  const options = deyeOptions(battery.nominalEnergyWh);
+  const leadFamily = battery.chemistry !== 'lifepo4' && battery.chemistry !== 'custom';
+
+  return (
+    <div className="deye">
+      <div className="deye__head">
+        <h3 className="deye__title">{t('deye.title')}</h3>
+        <p className="deye__need num">{text(t('deye.need', { kwh: formatUp(battery.nominalEnergyWh / 1000, 2) }))}</p>
+      </div>
+      <table className="deye__table">
+        <thead>
+          <tr>
+            <th scope="col">{t('deye.col.model')}</th>
+            <th scope="col">{t('deye.col.qty')}</th>
+            <th scope="col">{t('deye.col.total')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {options.map((option) => (
+            <tr key={option.battery.id} className={option.best ? 'deye__row deye__row--best' : 'deye__row'}>
+              <th scope="row">
+                <span className="deye__model" dir="ltr">{option.battery.model}</span>
+                <span className="deye__spec num" dir="ltr">
+                  {formatNumber(option.battery.energyWh / 1000, 2)} kWh
+                </span>
+              </th>
+              <td className="num deye__qty">{option.count}</td>
+              <td className="num">
+                <span dir="ltr">{formatNumber(option.installedWh / 1000, 2)} kWh</span>
+                {option.best ? <span className="deye__badge">{t('deye.best')}</span> : null}
+                {option.overLimit ? <span className="deye__badge deye__badge--warn">{t('deye.over')}</span> : null}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {voltage !== 48 ? <p className="deye__note">{text(t('deye.voltageNote'))}</p> : null}
+      {leadFamily ? <p className="deye__note">{text(t('deye.chemistryNote'))}</p> : null}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 /** Rows of the printed report. */
 import type { ProjectData } from '../../state/projectStore';
 import type { SizingResults } from '../../engine/types';
+import { deyeOptions } from '../../data/deyeBatteries';
 import { findLocation } from '../../data/locations';
 import { DEPTH_OF_DISCHARGE } from '../../engine/constants';
 import { placeName } from '../../i18n/places';
@@ -18,6 +19,8 @@ export interface ReportRow {
 export function detailRows(results: SizingResults, { t }: I18n): ReportRow[] {
   const { load, systemVoltage, inverter, pvArray, battery } = results;
   const v = systemVoltage.voltage;
+  const deye = deyeOptions(battery.nominalEnergyWh).find((option) => option.best)!;
+  const kwh = (wh: number) => formatNumber(wh / 1000, 2);
   return [
     {
       label: t('consumption.energy'),
@@ -50,6 +53,11 @@ export function detailRows(results: SizingResults, { t }: I18n): ReportRow[] {
       label: t('report.batteryCapacity'),
       value: `${formatUp(battery.capacityAh)} Ah · ${v} V · ${formatUp(battery.nominalEnergyWh / 1000, 2)} kWh`,
       formula: `C = E_T × ${formatNumber(battery.daysOfAutonomy, 2)} / (${formatNumber(battery.efficiency, 3)} × ${formatNumber(battery.depthOfDischarge, 3)} × ${v})`,
+    },
+    {
+      label: t('report.deye'),
+      value: `${deye.count} × ${deye.battery.model} (${kwh(deye.battery.energyWh)} kWh) = ${kwh(deye.installedWh)} kWh`,
+      formula: `N = ⌈C × V / E_Deye⌉ = ⌈${formatUp(battery.nominalEnergyWh / 1000, 2)} / ${kwh(deye.battery.energyWh)}⌉`,
     },
   ];
 }
