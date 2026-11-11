@@ -14,10 +14,15 @@ import { useToastStore } from '../../state/toastStore';
 import { severityOf, type Message } from '../../ui/messages';
 import { formatNumber, formatUp } from '../../ui/numbers';
 
-type NumericColumn = 'quantity' | 'powerW' | 'hoursPerDay';
+type NumericColumn = 'quantity' | 'powerW' | 'hoursPerDay' | 'batteryHoursPerDay';
 
-const NUMERIC_COLUMNS: readonly NumericColumn[] = ['quantity', 'powerW', 'hoursPerDay'];
-const INPUT_MODE: Record<NumericColumn, 'numeric' | 'decimal'> = { quantity: 'numeric', powerW: 'decimal', hoursPerDay: 'decimal' };
+const NUMERIC_COLUMNS: readonly NumericColumn[] = ['quantity', 'powerW', 'hoursPerDay', 'batteryHoursPerDay'];
+const INPUT_MODE: Record<NumericColumn, 'numeric' | 'decimal'> = {
+  quantity: 'numeric',
+  powerW: 'decimal',
+  hoursPerDay: 'decimal',
+  batteryHoursPerDay: 'decimal',
+};
 const SUGGESTIONS_ID = 'appliance-suggestions';
 
 interface LoadTableProps {
@@ -83,6 +88,9 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
               <th scope="col" className="col-num">
                 {t('col.hours')}
               </th>
+              <th scope="col" className="col-num">
+                {t('col.batteryHours')}
+              </th>
               <th scope="col" className="col-check">
                 {t('col.simultaneous')}
               </th>
@@ -110,6 +118,7 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
         {appliances.length === 0 ? <p className="empty-state">{t('loads.empty')}</p> : null}
       </div>
 
+      <p className="field__hint">{t('loads.batteryHint')}</p>
       <p className="field__hint">{t('loads.simultaneousHint')}</p>
 
       <div className="total-bar">
@@ -123,9 +132,14 @@ export function LoadTable({ issues, totals }: LoadTableProps) {
             <span className="total-bar__unit">{t('unit.whDay')}</span>
           </p>
         </div>
-        <p className="total-bar__kwh num">
-          = <SoftText text={totals ? formatUp(totals.dailyEnergyKWh, 2) : '—'} /> {t('unit.kwhDay')}
-        </p>
+        <div className="total-bar__side">
+          <p className="total-bar__kwh num">
+            = <SoftText text={totals ? formatUp(totals.dailyEnergyKWh, 2) : '—'} /> {t('unit.kwhDay')}
+          </p>
+          <p className="total-bar__battery num">
+            {t('loads.batteryTotal')} <SoftText text={totals ? formatUp(totals.batteryEnergyWh / 1000, 2) : '—'} /> {t('unit.kwhDay')}
+          </p>
+        </div>
       </div>
       <IssueList messages={issues.filter((issue) => issue.field === 'appliances')} />
     </section>
@@ -150,17 +164,26 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
     quantity: useNumberInput(appliance.quantity, (quantity) => update({ quantity })),
     powerW: useNumberInput(appliance.powerW, (powerW) => update({ powerW })),
     hoursPerDay: useNumberInput(appliance.hoursPerDay, (hoursPerDay) => update({ hoursPerDay })),
+    batteryHoursPerDay: useNumberInput(appliance.batteryHoursPerDay ?? Number.NaN, (batteryHoursPerDay) =>
+      update({ batteryHoursPerDay }),
+    ),
   };
   const [touched, setTouched] = useState<ReadonlySet<NumericColumn>>(() => new Set());
 
   const n = index + 1;
   const label = describeAppliance(appliance, index, locale);
   const rules = CATALOGS[locale].rules;
-  const columnLabel: Record<NumericColumn, string> = { quantity: t('col.qty'), powerW: t('col.powerShort'), hoursPerDay: t('col.hours') };
+  const columnLabel: Record<NumericColumn, string> = {
+    quantity: t('col.qty'),
+    powerW: t('col.powerShort'),
+    hoursPerDay: t('col.hours'),
+    batteryHoursPerDay: t('col.batteryHours'),
+  };
   const ariaLabel: Record<NumericColumn, string> = {
     quantity: t('aria.rowQty', { n }),
     powerW: t('aria.rowPower', { n }),
     hoursPerDay: t('aria.rowHours', { n }),
+    batteryHoursPerDay: t('aria.rowBatteryHours', { n }),
   };
 
   // A parse problem replaces the engine's "enter a number"; an empty cell is
@@ -178,6 +201,7 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
     quantity: columnMessages('quantity'),
     powerW: columnMessages('powerW'),
     hoursPerDay: columnMessages('hoursPerDay'),
+    batteryHoursPerDay: columnMessages('batteryHoursPerDay'),
   };
   const rowMessages = issues.filter((issue) => !NUMERIC_COLUMNS.some((column) => issue.field === `appliances.${column}`));
   const messages = [...NUMERIC_COLUMNS.flatMap((column) => byColumn[column]), ...rowMessages];
@@ -227,6 +251,12 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
                 autoComplete="off"
                 spellCheck={false}
                 value={inputs[column].text}
+                // Empty battery hours mean "all operating hours": show that value greyed out.
+                placeholder={
+                  column === 'batteryHoursPerDay' && Number.isFinite(appliance.hoursPerDay)
+                    ? formatNumber(appliance.hoursPerDay, 2)
+                    : undefined
+                }
                 aria-label={ariaLabel[column]}
                 aria-invalid={severity === 'error'}
                 aria-describedby={describedBy}
@@ -261,7 +291,7 @@ function LoadRow({ appliance, index, issues, isNew, autoFocus }: LoadRowProps) {
       {messages.length > 0 ? (
         <tr className="load-row__messages">
           <td />
-          <td colSpan={7}>
+          <td colSpan={8}>
             <IssueList id={messagesId} messages={messages} />
           </td>
         </tr>

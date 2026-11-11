@@ -45,6 +45,7 @@ export interface LoadTemplate {
   name: string;
   powerW: number;
   hoursPerDay: number;
+  batteryHoursPerDay: number;
 }
 
 /** crypto.randomUUID only exists in secure contexts; a field laptop may serve over plain http. */
@@ -90,15 +91,15 @@ const PROJECT_NAMES: Readonly<Record<Locale, { blank: string; example: string; s
   ar: { blank: 'مشروع جديد', example: 'مثال: منزل عائلي', site: 'نواكشوط' },
 };
 
-/** The example loads, named in each language; the values are the same. */
-const EXAMPLE_LOADS: readonly [Readonly<Record<Locale, string>>, number, number, number][] = [
-  [{ fr: 'Lampes LED', ar: 'مصابيح LED' }, 8, 10, 6],
-  [{ fr: 'Ventilateurs de plafond', ar: 'مراوح سقف' }, 3, 60, 8],
-  [{ fr: 'Réfrigérateur', ar: 'ثلاجة' }, 1, 150, 10],
-  [{ fr: 'Téléviseur', ar: 'تلفاز' }, 1, 80, 5],
-  [{ fr: 'Ordinateur portable', ar: 'حاسوب محمول' }, 1, 65, 4],
-  [{ fr: 'Chargeurs de téléphone', ar: 'شواحن هواتف' }, 4, 10, 3],
-  [{ fr: 'Pompe à eau', ar: 'مضخة ماء' }, 1, 750, 2],
+/** The example loads, named in each language: quantity, W, hours/day, hours on battery. */
+const EXAMPLE_LOADS: readonly [Readonly<Record<Locale, string>>, number, number, number, number][] = [
+  [{ fr: 'Lampes LED', ar: 'مصابيح LED' }, 8, 10, 6, 6],
+  [{ fr: 'Ventilateurs de plafond', ar: 'مراوح سقف' }, 3, 60, 8, 4],
+  [{ fr: 'Réfrigérateur', ar: 'ثلاجة' }, 1, 150, 10, 5],
+  [{ fr: 'Téléviseur', ar: 'تلفاز' }, 1, 80, 5, 4],
+  [{ fr: 'Ordinateur portable', ar: 'حاسوب محمول' }, 1, 65, 4, 2],
+  [{ fr: 'Chargeurs de téléphone', ar: 'شواحن هواتف' }, 4, 10, 3, 3],
+  [{ fr: 'Pompe à eau', ar: 'مضخة ماء' }, 1, 750, 2, 0],
 ];
 
 function blankProject(locale: Locale): ProjectData {
@@ -114,12 +115,13 @@ function exampleProject(locale: Locale): ProjectData {
     info: { name: PROJECT_NAMES[locale].example, site: PROJECT_NAMES[locale].site },
     locationId: NOUAKCHOTT.id,
     input: {
-      appliances: EXAMPLE_LOADS.map(([names, quantity, powerW, hoursPerDay]) => ({
+      appliances: EXAMPLE_LOADS.map(([names, quantity, powerW, hoursPerDay, batteryHoursPerDay]) => ({
         id: createId(),
         name: names[locale],
         quantity,
         powerW,
         hoursPerDay,
+        batteryHoursPerDay,
         isSimultaneous: true,
       })),
       system: defaultSystem(),

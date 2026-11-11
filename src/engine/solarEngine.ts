@@ -5,7 +5,8 @@
  *              ─► B. System voltage  12 V (< 1 kW) · 24 V (1–2 kW) · 48 V (> 2 kW), overridable
  *              ─► C. Inverter        P_inv = Σ nᵢ·Pᵢ × 1.3 (every load, simultaneous or not)
  *              ─► D. PV array        W_PV = E_T / (DF × PSH),  N_P = ⌈W_PV / P_module⌉
- *              ─► E. Battery bank    C_Ah = E_T × N_j / (η × DoD × V_syst)
+ *              ─► E. Battery bank    C_Ah = E_batt × N_j / (η × DoD × V_syst),  E_batt = Σ n·P·h_battery
+ *                                    (only the hours without sun; PV and inverter still use E_T and Σ n·P)
  *
  * Contract
  * - Pure: no I/O, clock, randomness or argument mutation. Same input, same output.
@@ -144,6 +145,30 @@ export function calculateDailyEnergyWh(
   return normalize(appliances.reduce((sum, appliance) => sum + calculateApplianceDailyEnergyWh(appliance), 0));
 }
 
+/**
+ * Hours a row runs on the battery: `batteryHoursPerDay` when entered, otherwise
+ * every operating hour (the safe default, and the behaviour of older projects).
+ */
+export function batteryHoursOf(appliance: Pick<Appliance, 'hoursPerDay' | 'batteryHoursPerDay'>): number {
+  return isFiniteNumber(appliance.batteryHoursPerDay) ? appliance.batteryHoursPerDay : appliance.hoursPerDay;
+}
+
+/** Energy one row draws from the battery: n × P × h_battery (Wh/day). */
+export function calculateApplianceBatteryEnergyWh(
+  appliance: Pick<Appliance, 'quantity' | 'powerW' | 'hoursPerDay' | 'batteryHoursPerDay'>,
+): number {
+  const hours = batteryHoursOf(appliance);
+  assertWithin('batteryHoursPerDay', hours, 0, 24);
+  return normalize(calculateApplianceTotalPowerW(appliance) * hours);
+}
+
+/** E_batt = Σ n × P × h_battery (Wh/day): what the battery must supply without sun. */
+export function calculateBatteryEnergyWh(
+  appliances: readonly Pick<Appliance, 'quantity' | 'powerW' | 'hoursPerDay' | 'batteryHoursPerDay'>[],
+): number {
+  return normalize(appliances.reduce((sum, appliance) => sum + calculateApplianceBatteryEnergyWh(appliance), 0));
+}
+
 /** Peak power: P_peak = Σ nᵢ × Pᵢ over the loads flagged `isSimultaneous` (W). */
 export function calculatePeakPowerW(
   appliances: readonly Pick<Appliance, 'quantity' | 'powerW' | 'isSimultaneous'>[],
@@ -181,12 +206,14 @@ export function analyzeLoads(appliances: readonly Appliance[]): LoadAnalysis {
         name: appliance.name,
         totalPowerW: calculateApplianceTotalPowerW(appliance),
         dailyEnergyWh: rowEnergyWh,
+        batteryEnergyWh: calculateApplianceBatteryEnergyWh(appliance),
         energyShare: dailyEnergyWh > 0 ? normalize(rowEnergyWh / dailyEnergyWh) : 0,
         isSimultaneous: appliance.isSimultaneous,
       };
     }),
     dailyEnergyWh,
     dailyEnergyKWh: whToKWh(dailyEnergyWh),
+    batteryEnergyWh: calculateBatteryEnergyWh(appliances),
     peakPowerW: calculatePeakPowerW(appliances),
     powerSumW: calculatePowerSumW(appliances),
   };
@@ -507,8 +534,22 @@ function validateAppliances(out: IssueCollector, appliances: readonly Appliance[
 
     checkRowNumber('quantity');
     checkRowNumber('powerW');
-    if (checkRowNumber('hoursPerDay') && appliance.hoursPerDay === 0) {
+    const hoursValid = checkRowNumber('hoursPerDay');
+    if (hoursValid && appliance.hoursPerDay === 0) {
       out.add('warning', 'ZERO_USAGE', at('hoursPerDay'), t.zeroUsage(row));
+    }
+    // Empty battery hours fall back to hoursPerDay, so only an entered value is checked.
+    if (isFiniteNumber(appliance.batteryHoursPerDay)) {
+      const batteryValid = checkNumber(
+        out,
+        appliance.batteryHoursPerDay,
+        'batteryHoursPerDay',
+        at('batteryHoursPerDay'),
+        t.rowField(row, t.rules.batteryHoursPerDay.label),
+      );
+      if (batteryValid && hoursValid && appliance.batteryHoursPerDay > appliance.hoursPerDay) {
+        out.add('error', 'OUT_OF_RANGE', at('batteryHoursPerDay'), t.batteryHoursOver(row));
+      }
     }
 
     if (typeof appliance.isSimultaneous !== 'boolean') {
@@ -646,7 +687,8 @@ export function calculateSizing(input: SizingInput, locale: Locale = 'fr'): Sizi
         deratingFactor: system.deratingFactor,
         panelPowerW: system.panelPowerW,
       }),
-      battery: sizeBatteryBank({ dailyEnergyWh: load.dailyEnergyWh, systemVoltage: systemVoltage.voltage, battery }),
+      // The battery covers only the hours without sun (E_batt); PV and inverter above are unchanged.
+      battery: sizeBatteryBank({ dailyEnergyWh: load.batteryEnergyWh, systemVoltage: systemVoltage.voltage, battery }),
     },
     issues,
   };

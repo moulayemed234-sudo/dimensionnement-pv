@@ -13,6 +13,8 @@ export interface LoadTotals {
   appliances: readonly ApplianceLoad[];
   dailyEnergyWh: number;
   dailyEnergyKWh: number;
+  /** Energy drawn from the battery (Wh/day). */
+  batteryEnergyWh: number;
   peakPowerW: number;
   recommendedVoltage: SystemVoltage;
 }
@@ -32,10 +34,17 @@ export function computeSizing(input: SizingInput, locale: Locale = 'fr'): Sizing
   if (!rowsValid) return { outcome, totals: null };
 
   const analysis = analyzeLoads(appliances);
-  const { dailyEnergyWh, dailyEnergyKWh, peakPowerW } = analysis;
+  const { dailyEnergyWh, dailyEnergyKWh, batteryEnergyWh, peakPowerW } = analysis;
   return {
     outcome,
-    totals: { appliances: analysis.appliances, dailyEnergyWh, dailyEnergyKWh, peakPowerW, recommendedVoltage: recommendSystemVoltage(peakPowerW) },
+    totals: {
+      appliances: analysis.appliances,
+      dailyEnergyWh,
+      dailyEnergyKWh,
+      batteryEnergyWh,
+      peakPowerW,
+      recommendedVoltage: recommendSystemVoltage(peakPowerW),
+    },
   };
 }
 

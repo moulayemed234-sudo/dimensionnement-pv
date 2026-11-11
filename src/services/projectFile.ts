@@ -42,6 +42,8 @@ function withNumbers(project: ProjectData): ProjectData {
         quantity: num(a.quantity),
         powerW: num(a.powerW),
         hoursPerDay: num(a.hoursPerDay),
+        // Older files have no battery hours: empty means "all operating hours".
+        batteryHoursPerDay: num(a.batteryHoursPerDay),
       })),
     },
   };

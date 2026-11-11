@@ -1,5 +1,6 @@
 import { findLocation } from '../../data/locations';
 import { placeName } from '../../i18n/places';
+import { batteryHoursOf } from '../../engine/solarEngine';
 import { useI18n } from '../../i18n/useI18n';
 import type { SizingOutcome } from '../../engine/types';
 import { useProjectStore } from '../../state/projectStore';
@@ -76,6 +77,7 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
                 <th>{t('col.qty')}</th>
                 <th>{t('col.power')}</th>
                 <th>{t('col.hours')}</th>
+                <th>{t('col.batteryHours')}</th>
                 <th>{t('col.energy')}</th>
               </tr>
             </thead>
@@ -89,6 +91,7 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
                     <td className="num">{appliance ? formatNumber(appliance.quantity) : '—'}</td>
                     <td className="num">{appliance ? formatNumber(appliance.powerW, 1) : '—'}</td>
                     <td className="num">{appliance ? formatNumber(appliance.hoursPerDay, 2) : '—'}</td>
+                    <td className="num">{appliance ? formatNumber(batteryHoursOf(appliance), 2) : '—'}</td>
                     <td className="num">{formatNumber(load.dailyEnergyWh, 1)}</td>
                   </tr>
                 );

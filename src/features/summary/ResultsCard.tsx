@@ -3,7 +3,7 @@ import { Icon, type IconName } from '../../components/Icon';
 import { IssueList } from '../../components/IssueList';
 import { SoftText } from '../../components/SoftText';
 import { deyeOptions } from '../../data/deyeBatteries';
-import type { BatterySizing, SizingOutcome, SystemVoltage } from '../../engine/types';
+import type { SizingOutcome, SizingResults } from '../../engine/types';
 import { useI18n } from '../../i18n/useI18n';
 import { downloadProject } from '../../services/projectFile';
 import { snapshotProject } from '../../state/projectStore';
@@ -62,7 +62,7 @@ function ResultList({ outcome }: { outcome: Extract<SizingOutcome, { ok: true }>
   const { t } = useI18n();
   const { pvArray, battery, inverter, systemVoltage } = outcome.results;
   const v = systemVoltage.voltage;
-  const deye = deyeOptions(battery.nominalEnergyWh).find((option) => option.best)!;
+  const deye = deyeOptions(battery.nominalEnergyWh, inverter.ratingW).find((option) => option.best)!;
 
   return (
     <>
@@ -96,22 +96,28 @@ function ResultList({ outcome }: { outcome: Extract<SizingOutcome, { ok: true }>
         sub={systemVoltage.source === 'auto' ? t('results.voltageAuto') : t('results.voltageManual')}
       />
     </div>
-    <DeyeOptions battery={battery} voltage={v} />
+    <DeyeOptions results={outcome.results} />
     </>
   );
 }
 
 /** Every Deye model with the number of modules it takes, the best fit highlighted. */
-function DeyeOptions({ battery, voltage }: { battery: BatterySizing; voltage: SystemVoltage }) {
+function DeyeOptions({ results }: { results: SizingResults }) {
   const { t, text } = useI18n();
-  const options = deyeOptions(battery.nominalEnergyWh);
+  const { battery, inverter, load } = results;
+  const voltage = results.systemVoltage.voltage;
+  const options = deyeOptions(battery.nominalEnergyWh, inverter.ratingW);
   const leadFamily = battery.chemistry !== 'lifepo4' && battery.chemistry !== 'custom';
 
   return (
     <div className="deye">
       <div className="deye__head">
         <h3 className="deye__title">{t('deye.title')}</h3>
-        <p className="deye__need num">{text(t('deye.need', { kwh: formatUp(battery.nominalEnergyWh / 1000, 2) }))}</p>
+        <p className="deye__need num">
+          {text(t('deye.night', { kwh: formatUp(load.batteryEnergyWh / 1000, 2) }))}
+          <br />
+          {text(t('deye.need', { kwh: formatUp(battery.nominalEnergyWh / 1000, 2) }))}
+        </p>
       </div>
       <table className="deye__table">
         <thead>
@@ -134,6 +140,7 @@ function DeyeOptions({ battery, voltage }: { battery: BatterySizing; voltage: Sy
               <td className="num">
                 <span dir="ltr">{formatNumber(option.installedWh / 1000, 2)} kWh</span>
                 {option.best ? <span className="deye__badge">{t('deye.best')}</span> : null}
+                {option.powerLimited ? <span className="deye__badge deye__badge--info">{t('deye.power')}</span> : null}
                 {option.overLimit ? <span className="deye__badge deye__badge--warn">{t('deye.over')}</span> : null}
               </td>
             </tr>

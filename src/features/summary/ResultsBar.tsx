@@ -21,7 +21,7 @@ export function ResultsBar({ outcome }: { outcome: SizingOutcome }) {
             <SoftText text={String(outcome.results.pvArray.panelCount)} /> × {formatNumber(outcome.results.pvArray.panelPowerW)} W
           </span>
           <span className="num">
-            <SoftText text={deyeBest(outcome.results.battery.nominalEnergyWh)} />
+            <SoftText text={deyeBest(outcome.results.battery.nominalEnergyWh, outcome.results.inverter.ratingW)} />
           </span>
         </span>
       ) : (
@@ -37,7 +37,7 @@ export function ResultsBar({ outcome }: { outcome: SizingOutcome }) {
 }
 
 /** "2 × SE-F12": the best-fitting Deye module count. */
-function deyeBest(requiredWh: number): string {
-  const best = deyeOptions(requiredWh).find((option) => option.best)!;
+function deyeBest(requiredWh: number, inverterW: number): string {
+  const best = deyeOptions(requiredWh, inverterW).find((option) => option.best)!;
   return `${best.count} × ${best.battery.model}`;
 }

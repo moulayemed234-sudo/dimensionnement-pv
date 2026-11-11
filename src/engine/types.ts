@@ -25,6 +25,11 @@ export interface Appliance {
   /** Average operating time of ONE unit per day, in hours (0–24). */
   hoursPerDay: number;
   /**
+   * Of those hours, how many run on the battery (night, early morning, evening:
+   * no sun). Missing or empty means all of `hoursPerDay`. Sizes the battery only.
+   */
+  batteryHoursPerDay?: number;
+  /**
    * `true` when this load can run at the same time as the other simultaneous
    * loads. Only simultaneous loads are summed into the peak power P_peak.
    */
@@ -102,6 +107,8 @@ export interface ApplianceLoad {
   totalPowerW: number;
   /** quantity × powerW × hoursPerDay (Wh/day). */
   dailyEnergyWh: number;
+  /** quantity × powerW × battery hours (Wh/day): the part drawn from the battery. */
+  batteryEnergyWh: number;
   /** This row's fraction of E_T (0–1). */
   energyShare: number;
   isSimultaneous: boolean;
@@ -114,6 +121,8 @@ export interface LoadAnalysis {
   dailyEnergyWh: number;
   /** E_T2 = E_T / 1000 (kWh/day). */
   dailyEnergyKWh: number;
+  /** E_batt = Σ n·P·h_battery: energy used without sun (Wh/day). Sizes the battery. */
+  batteryEnergyWh: number;
   /** P_peak: sum of the simultaneous loads (W). */
   peakPowerW: number;
   /** Σ nᵢ·Pᵢ over every load, simultaneous or not (W). Sizes the inverter. */
@@ -156,7 +165,7 @@ export interface BatterySizing {
   depthOfDischarge: number;
   efficiency: number;
   daysOfAutonomy: number;
-  /** C_Ah = E_T × N_j / (η × DoD × V_syst), in Ah at V_syst. */
+  /** C_Ah = E_batt × N_j / (η × DoD × V_syst), in Ah at V_syst. */
   capacityAh: number;
   /** C_Ah × V_syst: nominal energy of the bank (Wh). */
   nominalEnergyWh: number;

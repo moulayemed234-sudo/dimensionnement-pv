@@ -33,6 +33,7 @@ export interface MessageCatalog {
   duplicateId: (row: string) => string;
   missingName: (row: string) => string;
   zeroUsage: (row: string) => string;
+  batteryHoursOver: (row: string) => string;
   simultaneousInvalid: (row: string) => string;
   voltageInvalid: (choices: string) => string;
   chemistryInvalid: string;
@@ -55,6 +56,7 @@ const fr: MessageCatalog = {
     quantity: { label: 'Quantité', unit: '' },
     powerW: { label: 'Puissance', unit: 'W' },
     hoursPerDay: { label: 'Heures par jour', unit: 'h' },
+    batteryHoursPerDay: { label: 'Heures sur batterie', unit: 'h' },
     peakSunHours: {
       label: 'Heures de soleil crête (PSH)',
       unit: 'h',
@@ -95,6 +97,7 @@ const fr: MessageCatalog = {
   duplicateId: (row) => `${row} : identifiant déjà utilisé par une autre charge.`,
   missingName: (row) => `${row} : nom manquant.`,
   zeroUsage: (row) => `${row} : 0 h par jour, aucune énergie ajoutée.`,
+  batteryHoursOver: (row) => `${row} : les heures sur batterie ne peuvent pas dépasser les heures par jour.`,
   simultaneousInvalid: (row) => `${row} : indiquez si la charge est simultanée ou non.`,
   voltageInvalid: (choices) => `Tension du système : choisissez Auto ou ${choices} V.`,
   chemistryInvalid: 'Choisissez une technologie de batterie.',
@@ -116,6 +119,7 @@ const ar: MessageCatalog = {
     quantity: { label: 'الكمية', unit: '' },
     powerW: { label: 'القدرة', unit: 'W' },
     hoursPerDay: { label: 'ساعات التشغيل', unit: 'h' },
+    batteryHoursPerDay: { label: 'ساعات على البطارية', unit: 'h' },
     peakSunHours: { label: 'ساعات الذروة الشمسية (PSH)', unit: 'h', hint: 'تحقق من بيانات الإشعاع للموقع وشهر التصميم.' },
     deratingFactor: {
       label: 'معامل الفقد (DF)',
@@ -151,6 +155,7 @@ const ar: MessageCatalog = {
   duplicateId: (row) => `${row}: المعرّف مستخدم لحمل آخر.`,
   missingName: (row) => `${row}: اسم الجهاز غير محدد.`,
   zeroUsage: (row) => `${row}: صفر ساعة يومياً، لا يضيف أي طاقة.`,
+  batteryHoursOver: (row) => `${row}: ساعات البطارية لا يمكن أن تتجاوز ساعات التشغيل اليومية.`,
   simultaneousInvalid: (row) => `${row}: حدّد ما إذا كان الحمل متزامناً أم لا.`,
   voltageInvalid: (choices) => `جهد النظام: اختر «تلقائي» أو ${choices} V.`,
   chemistryInvalid: 'اختر تقنية البطارية.',

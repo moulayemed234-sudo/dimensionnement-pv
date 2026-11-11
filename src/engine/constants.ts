@@ -68,6 +68,7 @@ export const NUMERIC_RULES = {
   quantity: { label: 'Quantité', unit: '', min: 1, integer: true },
   powerW: { label: 'Puissance', unit: 'W', min: 0, exclusiveMin: true },
   hoursPerDay: { label: 'Heures par jour', unit: 'h', min: 0, max: 24 },
+  batteryHoursPerDay: { label: 'Heures sur batterie', unit: 'h', min: 0, max: 24 },
   peakSunHours: {
     label: 'Heures de soleil crête (PSH)',
     unit: 'h',

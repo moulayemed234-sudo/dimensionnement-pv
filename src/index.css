@@ -762,7 +762,7 @@ input[type='checkbox'] {
 
 .load-table {
   width: 100%;
-  min-width: 720px;
+  min-width: 800px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   border-collapse: separate;
@@ -922,10 +922,22 @@ input[type='checkbox'] {
   font-weight: 700;
 }
 
-.total-bar__kwh {
+.total-bar__side {
+  display: grid;
+  gap: 2px;
   margin-inline-start: auto;
+  text-align: end;
+}
+
+.total-bar__kwh {
   color: var(--green-text);
   font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.total-bar__battery {
+  color: var(--text);
+  font-size: 0.95rem;
   font-weight: 700;
 }
 
@@ -948,11 +960,11 @@ input[type='checkbox'] {
 
   .load-row {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) 44px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     grid-template-areas:
-      'name name name remove'
-      'quantity power hours hours'
-      'check check energy energy';
+      'name name name name'
+      'quantity power hours battery'
+      'check check energy remove';
     gap: 8px;
     padding: 12px;
     border: 1px solid var(--border);
@@ -971,13 +983,11 @@ input[type='checkbox'] {
   .load-row td[data-label]::before {
     content: attr(data-label);
     display: block;
-    overflow: hidden;
     margin-bottom: 3px;
     color: var(--text-muted);
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.25;
   }
 
   .load-row .col-index {
@@ -991,6 +1001,7 @@ input[type='checkbox'] {
   .load-row .col-action {
     grid-area: remove;
     align-self: center;
+    justify-self: end;
   }
 
   .load-row .col-quantity {
@@ -1003,6 +1014,10 @@ input[type='checkbox'] {
 
   .load-row .col-hoursPerDay {
     grid-area: hours;
+  }
+
+  .load-row .col-batteryHoursPerDay {
+    grid-area: battery;
   }
 
   .load-row .col-num {
@@ -1072,8 +1087,9 @@ input[type='checkbox'] {
     display: none;
   }
 
-  .total-bar__kwh {
+  .total-bar__side {
     margin-inline-start: 0;
+    text-align: start;
   }
 }
 
@@ -1333,6 +1349,11 @@ input[type='checkbox'] {
 
 :root[data-theme='dark'] .deye__badge {
   color: #062b1a;
+}
+
+.deye__badge--info {
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .deye__badge--warn {
