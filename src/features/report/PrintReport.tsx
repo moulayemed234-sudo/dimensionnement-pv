@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { findLocation } from '../../data/locations';
 import { placeName } from '../../i18n/places';
 import { batteryHoursOf } from '../../engine/solarEngine';
@@ -29,21 +30,41 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
   return (
     <div className="print-report" aria-hidden="true">
       {/* Plain document flow (no fixed or repeated elements): prints the same in every browser, iPhone included. */}
-      {/* Only the logo band at the top of the letterhead is shown (cropped in CSS). */}
-      <div className="print-report__logo">
-        <img src={letterhead} alt="" />
-      </div>
-      <header className="print-report__head">
-        <h1>{t('print.title')}</h1>
-        <dl className="print-report__meta">
-          {meta.map((item) => (
-            <div key={item.label}>
-              <dt>{item.label}</dt>
-              <dd>{text(item.value)}</dd>
-            </div>
-          ))}
-        </dl>
+      <header className="print-report__brand">
+        {/* The round logo, cut out of the letterhead image in CSS. */}
+        <div className="print-report__logo">
+          <img src={letterhead} alt="" />
+        </div>
+        <p className="print-report__brand-name">
+          <span lang="ar">شمس الوطن</span>
+          <span className="print-report__brand-sep">·</span>
+          <span lang="fr">SHEMS AL WATAN</span>
+        </p>
+        <p className="print-report__slogan">{t('print.slogan')}</p>
       </header>
+
+      <h1>{t('print.title')}</h1>
+
+      <table className="print-report__table print-report__meta">
+        <colgroup>
+          <col style={{ width: '16%' }} />
+          <col style={{ width: '34%' }} />
+          <col style={{ width: '16%' }} />
+          <col style={{ width: '34%' }} />
+        </colgroup>
+        <tbody>
+          {[meta.slice(0, 2), meta.slice(2, 4)].map((pair) => (
+            <tr key={pair[0].label}>
+              {pair.map((item) => (
+                <Fragment key={item.label}>
+                  <th scope="row">{item.label}</th>
+                  <td>{text(item.value)}</td>
+                </Fragment>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
       {outcome.ok ? (
         <section className="print-report__results">
@@ -125,12 +146,6 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
           </table>
         </section>
       ) : null}
-
-      <p className="print-report__footer">{t('print.footer')}</p>
-      <p className="print-report__contact">
-        SHAMS EL WATANE FOR ENERGY (SWAT) · Tel: 0022220841700 / 0022248202020 · shameswatan@gmail.com · Îlot k 176, Nouakchott,
-        Mauritanie
-      </p>
     </div>
   );
 }
