@@ -19,6 +19,13 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
   const date = new Intl.DateTimeFormat(locale === 'ar' ? 'ar-u-nu-latn' : 'fr-FR', { dateStyle: 'long' }).format(new Date());
   const loads = outcome.ok ? outcome.results.load.appliances : [];
 
+  const meta = [
+    { label: t('print.project'), value: info.name || '—' },
+    { label: t('print.site'), value: info.site || (location ? placeName(location, locale) : '—') },
+    { label: t('print.engineer'), value: info.engineer || '—' },
+    { label: t('print.date'), value: date },
+  ];
+
   return (
     <div className="print-report" aria-hidden="true">
       {/* Company letterhead (SHEMS AL WATAN): a fixed element, so it prints behind every page. */}
@@ -44,87 +51,100 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
           <tr>
             <td>
               <div className="print-report__body">
-      <header className="print-report__head">
-        <div>
-          <h1>{t('print.title')}</h1>
-          <p className="print-report__meta">
-            {text(
-              t('print.meta', {
-                name: info.name || '—',
-                site: info.site || (location ? placeName(location, locale) : '—'),
-                engineer: info.engineer || '—',
-                date,
-              }),
-            )}
-          </p>
-        </div>
-      </header>
+                <header className="print-report__head">
+                  <h1>{t('print.title')}</h1>
+                  <dl className="print-report__meta">
+                    {meta.map((item) => (
+                      <div key={item.label}>
+                        <dt>{item.label}</dt>
+                        <dd>{text(item.value)}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </header>
 
-      {outcome.ok ? (
-        <section>
-          <h2>{t('print.results')}</h2>
-          <table>
-            <tbody>
-              {summaryRows(outcome.results, i18n).map((row) => (
-                <tr key={row.label}>
-                  <th scope="row">{row.label}</th>
-                  <td className="num"><span dir="ltr">{row.value}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      ) : (
-        <section>
-          <h2>{t('summary.pending')}</h2>
-          <ul>
-            {outcome.issues
-              .filter((issue) => issue.severity === 'error')
-              .map((issue) => (
-                <li key={issue.message}>{text(issue.message)}</li>
-              ))}
-          </ul>
-        </section>
-      )}
+                {outcome.ok ? (
+                  <section className="print-report__results">
+                    <h2>{t('print.results')}</h2>
+                    <table className="print-report__table">
+                      <colgroup>
+                        <col style={{ width: '58%' }} />
+                        <col style={{ width: '42%' }} />
+                      </colgroup>
+                      <tbody>
+                        {summaryRows(outcome.results, i18n).map((row) => (
+                          <tr key={row.label}>
+                            <th scope="row">{row.label}</th>
+                            <td className="num print-report__value">{row.value}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </section>
+                ) : (
+                  <section>
+                    <h2>{t('summary.pending')}</h2>
+                    <ul>
+                      {outcome.issues
+                        .filter((issue) => issue.severity === 'error')
+                        .map((issue) => (
+                          <li key={issue.message}>{text(issue.message)}</li>
+                        ))}
+                    </ul>
+                  </section>
+                )}
 
-      {loads.length > 0 ? (
-        <section className="print-report__loads">
-          <h2>{t('print.loads')}</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>{t('col.device')}</th>
-                <th>{t('col.qty')}</th>
-                <th>{t('col.power')}</th>
-                <th>{t('col.hours')}</th>
-                <th>{t('col.batteryHours')}</th>
-                <th>{t('col.energy')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loads.map((load, index) => {
-                const appliance = input.appliances.find((a) => a.id === load.applianceId);
-                return (
-                  <tr key={load.applianceId}>
-                    <td>{index + 1}</td>
-                    <td>{load.name || '—'}</td>
-                    <td className="num">{appliance ? formatNumber(appliance.quantity) : '—'}</td>
-                    <td className="num">{appliance ? formatNumber(appliance.powerW, 1) : '—'}</td>
-                    <td className="num">{appliance ? formatNumber(appliance.hoursPerDay, 2) : '—'}</td>
-                    <td className="num">{appliance ? formatNumber(batteryHoursOf(appliance), 2) : '—'}</td>
-                    <td className="num">{formatNumber(load.dailyEnergyWh, 1)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </section>
-      ) : null}
+                {outcome.ok && loads.length > 0 ? (
+                  <section className="print-report__loads">
+                    <h2>{t('print.loads')}</h2>
+                    <table className="print-report__table print-report__table--loads">
+                      <colgroup>
+                        <col style={{ width: '6%' }} />
+                        <col style={{ width: '32%' }} />
+                        <col style={{ width: '9%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '13%' }} />
+                        <col style={{ width: '15%' }} />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th className="num">#</th>
+                          <th>{t('col.device')}</th>
+                          <th>{t('col.qty')}</th>
+                          <th>{t('col.power')}</th>
+                          <th>{t('col.hours')}</th>
+                          <th>{t('col.batteryHours')}</th>
+                          <th>{t('col.energy')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {loads.map((load, index) => {
+                          const appliance = input.appliances.find((a) => a.id === load.applianceId);
+                          return (
+                            <tr key={load.applianceId}>
+                              <td className="num">{index + 1}</td>
+                              <td>{load.name || '—'}</td>
+                              <td className="num">{appliance ? formatNumber(appliance.quantity) : '—'}</td>
+                              <td className="num">{appliance ? formatNumber(appliance.powerW, 1) : '—'}</td>
+                              <td className="num">{appliance ? formatNumber(appliance.hoursPerDay, 2) : '—'}</td>
+                              <td className="num">{appliance ? formatNumber(batteryHoursOf(appliance), 2) : '—'}</td>
+                              <td className="num">{formatNumber(load.dailyEnergyWh, 1)}</td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="print-report__total">
+                          <th scope="row" colSpan={6}>
+                            {t('print.total')}
+                          </th>
+                          <td className="num">{formatNumber(outcome.results.load.dailyEnergyWh, 1)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </section>
+                ) : null}
 
-      <p className="print-report__footer">
-        {t('print.footer')}
-      </p>
+                <p className="print-report__footer">{t('print.footer')}</p>
               </div>
             </td>
           </tr>

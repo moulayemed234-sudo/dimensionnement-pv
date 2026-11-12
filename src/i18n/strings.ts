@@ -142,6 +142,11 @@ const fr = {
   'print.results': 'Résultats',
   'print.warnings': 'Points à vérifier',
   'print.footer': 'Valeurs arrondies vers le haut.',
+  'print.project': 'Projet',
+  'print.site': 'Site',
+  'print.engineer': 'Ingénieur',
+  'print.date': 'Date',
+  'print.total': 'Total journalier',
   'print.yes': 'oui',
   'print.no': 'non',
 
@@ -306,6 +311,11 @@ const ar: Record<StringKey, string> = {
   'print.results': 'النتائج',
   'print.warnings': 'ملاحظات للمراجعة',
   'print.footer': 'القيم مقرّبة إلى الأعلى.',
+  'print.project': 'المشروع',
+  'print.site': 'الموقع',
+  'print.engineer': 'المهندس',
+  'print.date': 'التاريخ',
+  'print.total': 'المجموع اليومي',
   'print.yes': 'نعم',
   'print.no': 'لا',
 
