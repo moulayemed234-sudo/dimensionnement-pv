@@ -53,8 +53,8 @@ export function PrintReport({ outcome }: { outcome: SizingOutcome }) {
           <col style={{ width: '34%' }} />
         </colgroup>
         <tbody>
-          {[meta.slice(0, 2), meta.slice(2, 4)].map((pair) => (
-            <tr key={pair[0].label}>
+          {[meta.slice(0, 2), meta.slice(2, 4)].map((pair, row) => (
+            <tr key={row}>
               {pair.map((item) => (
                 <Fragment key={item.label}>
                   <th scope="row">{item.label}</th>
